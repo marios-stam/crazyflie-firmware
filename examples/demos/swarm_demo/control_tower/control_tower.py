@@ -168,7 +168,6 @@ class TrafficController:
 
         self._param_check_list = []
         self._param_groups = []
-        # Print the param TOC
         p_toc = self._cf.param.toc.toc
         for group in sorted(p_toc.keys()):
             for param in sorted(p_toc[group].keys()):
@@ -308,10 +307,8 @@ class TowerBase:
 
         charging_controllers = []
         for controller in self.controllers:
-            print("controller:", controller.uri," state:",controller.copter_state," vbat:",controller.vbat)
             if controller.is_charging():
                 charge = controller.get_charge_level()
-                print("Charge:", charge)
                 if controller.is_charged_for_flight():
                     charging_controllers.append((controller, charge))
                 else:
