@@ -148,7 +148,7 @@ class TrafficController:
         return self.vbat
 
     def is_charged_for_flight(self):
-        return self.vbat > 3.5
+        return self.vbat > 4.1
 
     def get_traj_cycles(self):
         return self.traj_cycles
@@ -222,13 +222,13 @@ class TrafficController:
         self._cf.disconnected.add_callback(self._disconnected)
         self._cf.connection_failed.add_callback(self._connection_failed)
         self._cf.connection_lost.add_callback(self._connection_lost)
-        self._cf.console.receivedChar.add_callback(self._console_incoming)
+        # self._cf.console.receivedChar.add_callback(self._console_incoming) #print debug messages from Crazyflie
 
         print("Connecting to " + self.uri)
         self._cf.open_link(self.uri)
 
     def _console_incoming(self, console_text):
-        print("CF DEBUG:",console_text, end='')
+        print("CF {} DEBUG:".format( self.uri[-2:] ),console_text, end='')
 
     def _setup_logging(self):
         print("Setting up logging")
@@ -607,8 +607,8 @@ class SyncTower(TowerBase):
 
 
 uris = [
-    'radio://0/40/2M/E7E7E7E701',
-    # 'radio://0/40/2M/E7E7E7E709'
+    'radio://0/40/2M/E7E7E7E704',
+    'radio://0/40/2M/E7E7E7E701'
 ]
 
 count = 1

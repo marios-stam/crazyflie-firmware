@@ -244,14 +244,11 @@ static void appTimer(xTimerHandle timer) {
 
   if(sitAwTuDetected()) {
     state = STATE_CRASHED;
-    DEBUG_PRINT("SitAwTu detected\n");
   }
 
   if (isBatLow()) {
     terminateTrajectoryAndLand = true;
   }
-
-  DEBUG_PRINT("State: %d\n", state);
   
   switch(state) {
     case STATE_IDLE:
