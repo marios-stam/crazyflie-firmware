@@ -31,7 +31,11 @@
 #include "p2p_interface.h"
 
 static P2PPacket p2p_TXpacket;
-static DTRpacket latest_DTR_packet; 
+//TODO: make a struct of queue ,read and write pointers
+static DTRpacket incoming_DTR_q[INCOMING_DTR_QUEUE_SIZE];
+static uint8_t incoming_DTR_q_read_index= 0;
+static uint8_t incoming_DTR_q_write_index = 0;
+
 
 void sendDTRpacket(const DTRpacket* packet) {
     p2p_TXpacket.port=0x00;
@@ -43,13 +47,23 @@ void sendDTRpacket(const DTRpacket* packet) {
 }
 
 void p2pcallbackHandler(P2PPacket *p){
-	uint8_t DTRpacket_size = p->data[0];
-	memcpy(&latest_DTR_packet, &(p->data[0]), DTRpacket_size);
+    DTRpacket * incoming_DTR_q_latest_write = (DTRpacket *) &incoming_DTR_q[incoming_DTR_q_write_index];	
+    uint8_t DTRpacket_size = p->data[0];
+	memcpy(incoming_DTR_q_latest_write, &(p->data[0]), DTRpacket_size);
+    
+    incoming_DTR_q_write_index = (incoming_DTR_q_write_index + 1) % INCOMING_DTR_QUEUE_SIZE;
 }
 
 
-DTRpacket* getLatestDTRpacket(){
-    return &latest_DTR_packet;
+DTRpacket* getNextDTRpacketReceived(){
+    if (incoming_DTR_q_read_index == incoming_DTR_q_write_index) {
+        return NULL;
+    }
+    
+    DTRpacket * incoming_DTR_q_latest_read = (DTRpacket *) &incoming_DTR_q[incoming_DTR_q_read_index];
+    incoming_DTR_q_read_index = (incoming_DTR_q_read_index + 1) % INCOMING_DTR_QUEUE_SIZE;
+    
+    return incoming_DTR_q_latest_read;
 }
 
 

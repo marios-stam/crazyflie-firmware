@@ -22,7 +22,7 @@
  * SOFTWARE.
  *
  *
- * radioTimer.h
+ * DTR_timers.h
  *
  *  Created on: 14.02.2021
  *      Author: Christos Zosimidis
@@ -30,16 +30,19 @@
  * Modified for the P2P protocol by: Bitcraze AB
  *
  */
-#ifndef SRC_RADIO_RADIOTIMER_H_
-#define SRC_RADIO_RADIOTIMER_H_
+#ifndef SRC_RADIO_DTR_TIMERS_H_
+#define SRC_RADIO_DTR_TIMERS_H_
 
 #include "FreeRTOS.h"
 #include "DTR_types.h"
 
 
-void initRadioTimer();
-void shutdownRadioTimer();
-void setRadioTimer(unsigned int time_out);
-void startRadioTimer();
+void initDTRSenderTimer();
 
-#endif /* SRC_RADIO_RADIOTIMER_H_ */
+void shutdownDTRSenderTimer();
+
+void setDTRSenderTimer(unsigned int time_out);
+
+void startDTRSenderTimer();
+
+#endif /* SRC_RADIO_DTR_TIMERS_H_ */

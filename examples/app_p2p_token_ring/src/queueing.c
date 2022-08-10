@@ -96,10 +96,10 @@ void incrementTxQueueReadPos() {
     txQueueReadPos = (txQueueReadPos + 1) % TX_QUEUE_SIZE;
 }
 
-void incrementRxQueueReadPos() {
-    rxQueueReadPos = (rxQueueReadPos + 1) % RX_QUEUE_SIZE;
-}
-
 void incrementRxQueueWritePos() {
     rxQueueWritePos = (rxQueueWritePos + 1) % RX_QUEUE_SIZE;
+}
+
+void incrementRxQueueReadPos() {
+    rxQueueReadPos = (rxQueueReadPos + 1) % RX_QUEUE_SIZE;
 }

@@ -34,11 +34,16 @@
 #include "radiolink.h"
 #include "token_ring.h"
 
+#define INCOMING_DTR_QUEUE_SIZE 10
+
+// Broadcasts a DTR packet through the P2P network
 void sendDTRpacket(const DTRpacket* packet) ;
 
+// Puts the DTR packet in the queue for the token ring to pick up.
 void p2pcallbackHandler(P2PPacket *p);
 
-// Returns the address to the latest DTR packet received
-DTRpacket* getLatestDTRpacket();
+// Returns the address to the next DTR packet received
+// and NULL if no packet is available
+DTRpacket* getNextDTRpacketReceived();
 
 #endif // _P2P_INTERFACE_H_

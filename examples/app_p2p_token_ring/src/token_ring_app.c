@@ -64,19 +64,15 @@ void appMain(){
 	uint8_t my_id = get_self_id();
 
 	initTokenRing(NETWORK_SIZE, my_id);
-	initRadioTimer();
+	initDTRSenderTimer();
 
 	// Register the callback function so that the CF can receive packets as well.
 	p2pRegisterCB(p2pcallbackHandler);
 
+	startRadioCommunication();
+
 	while (1)
 	{
-		// Send a message every 2 seconds
-		//   Note: if they are sending at the exact same time, there will be message collisions,
-		//    however since they are sending every 2 seconds, and they are not started up at the same
-		//    time and their internal clocks are different, there is not really something to worry about
-
-		vTaskDelay(M2T(2000));
-		radiolinkSendP2PPacketBroadcast(&p_reply);
+		// do nothing
 	}
 }

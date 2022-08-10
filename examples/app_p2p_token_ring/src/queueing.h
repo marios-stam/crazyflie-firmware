@@ -62,9 +62,15 @@ DTRpacket *getTXReadPacket();
 
 DTRpacket *getRXWritePacket();
 
+// same as sendRadioTxPacket()
 void incrementTxQueueWritePos();
+
 void incrementTxQueueReadPos();
+
+// same as releaseRadioRxPacket()
 void incrementRxQueueReadPos();
+
+// It keeps the last packet in the queue for the user to read it.
 void incrementRxQueueWritePos();
 
 #endif /* _QUEUEING_H_ */

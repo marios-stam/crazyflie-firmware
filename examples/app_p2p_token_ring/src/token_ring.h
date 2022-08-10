@@ -40,7 +40,7 @@
 #include "radiolink.h"
 
 #include "DTR_types.h"
-#include "radioTimer.h"
+#include "DTR_timers.h"
 #include "p2p_interface.h"
 #include "queueing.h"
 

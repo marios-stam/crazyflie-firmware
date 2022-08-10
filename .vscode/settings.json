@@ -5,6 +5,10 @@
         "**/bower_components": true
     },
     "files.associations": {
-        "bootloader.h": "c"
+        "bootloader.h": "c",
+        "radiotimer.h": "c",
+        "queueing.h": "c",
+        "p2p_interface.h": "c",
+        "freertos.h": "c"
     }
 }

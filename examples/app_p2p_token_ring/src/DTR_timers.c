@@ -22,7 +22,7 @@
  * SOFTWARE.
  *
  *
- * radioTimer.c
+ * DTR_timers.c
  *
  *  Created on: 14.02.2021
  *      Author: Christos Zosimidis
@@ -32,37 +32,43 @@
  */
 
 
-#include "radioTimer.h"
+#include "DTR_timers.h"
 #include "token_ring.h"
 #include "timers.h"
 
-static xTimerHandle timer;
-static bool timer_running = false;
+static xTimerHandle sender_timer;
+static xTimerHandle protocol_timer;
 
+static bool sender_timer_running = false;
 
-void initRadioTimer() {
-	timer = xTimerCreate("RadioTimer", M2T(20), pdTRUE, NULL, timeOutCallBack);
+void startDTRProtocolTimer(void)
+{
+	protocol_timer = xTimerCreate("DTRProtTimer", M2T(), pdFALSE, NULL, DTRInterruptHandler);
 }
 
-void setRadioTimer(unsigned int time_out) {
-	xTimerChangePeriod(timer, M2T(time_out), 0);
+void initDTRSenderTimer() {
+	sender_timer = xTimerCreate("DTRSenderTimer", M2T(20), pdTRUE, NULL, timeOutCallBack);
 }
 
-void shutdownRadioTimer() {
-	if (timer_running) {
-		xTimerStop(timer, 0);
-		timer_running = false;
+void setDTRSenderTimer(unsigned int time_out) {
+	xTimerChangePeriod(sender_timer, M2T(time_out), 0);
+}
+
+void shutdownDTRSenderTimer() {
+	if (sender_timer_running) {
+		xTimerStop(sender_timer, 0);
+		sender_timer_running = false;
 	}else{
 		DEBUG_PRINT("Radio timer not running\n");
 	}
 }
 
-void startRadioTimer() {
-	if (timer_running){
+void startDTRSenderTimer() {
+	if (sender_timer_running){
 		DEBUG_PRINT("Radio timer already running\n");
 	}else{
-		xTimerStart(timer, 20);
-		timer_running = true;
+		xTimerStart(sender_timer, 20);
+		sender_timer_running = true;
 	}
 }
 

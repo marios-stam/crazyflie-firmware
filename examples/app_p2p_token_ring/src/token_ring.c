@@ -107,9 +107,9 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 			rx_state = RX_WAIT_CTS;
 
 			// set the radio timer to "spam" RTS messages
-			setRadioTimer(MAX_WAIT_TIME_FOR_CTS);
+			setDTRSenderTimer(MAX_WAIT_TIME_FOR_CTS);
 			timerDTRpacket = packet;
-			startRadioTimer();
+			startDTRSenderTimer();
 			break;
 
 		case TX_TOKEN:
@@ -117,9 +117,9 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 			rx_state = RX_WAIT_RTS;
 
 			// set the radio timer to "spam" token messages
-			setRadioTimer(MAX_WAIT_TIME_FOR_RTS);
+			setDTRSenderTimer(MAX_WAIT_TIME_FOR_RTS);
 			timerDTRpacket = packet;
-			startRadioTimer();
+			startDTRSenderTimer();
 			break;
 
 		case TX_DATA_FRAME:
@@ -127,9 +127,9 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 			rx_state = RX_WAIT_DATA_ACK;
 
 			// set the radio timer to "spam" the same DATA frame
-			setRadioTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
+			setDTRSenderTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
 			timerDTRpacket = packet;
-			startRadioTimer();
+			startDTRSenderTimer();
 			break;
 
 		default:
@@ -137,6 +137,8 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 			return;
 	}
 	sendDTRpacket(packet);
+	radioMode = TX_MODE;
+
 }
 
 
@@ -204,7 +206,7 @@ void DTRInterruptHandler(void) {
 					/* if packet is CTS and received from previous node, then node can
 					 * send its next DATA packet. */
 					if (rxPk->message_type == CTS_FRAME && rxPk->source_id == prev_node_id) {
-						shutdownRadioTimer();
+						shutdownDTRSenderTimer();
 						last_packet_source_id = node_id;
 						/* check if there is a DATA packet. If yes, prepare it and
 						 * send it, otherwise forward the token to the next node. */
@@ -243,7 +245,7 @@ void DTRInterruptHandler(void) {
 					/* if packet is TOKEN_ACK and received from next node, then
 					 * a CTS packet can be sent. */
 					if (rxPk->message_type == RTS_FRAME && rxPk->source_id == next_node_id) {
-						shutdownRadioTimer();
+						shutdownDTRSenderTimer();
 						// NVIC_ClearPendingIRQ(TIMER0_IRQn);
 						// NVIC_ClearPendingIRQ(RADIO_IRQn);
 						servicePk.message_type = CTS_FRAME;
@@ -257,7 +259,7 @@ void DTRInterruptHandler(void) {
 				case RX_WAIT_DATA_ACK:
 
 					if (rxPk->message_type == DATA_ACK_FRAME && rxPk->target_id == node_id) {
-						shutdownRadioTimer();
+						shutdownDTRSenderTimer();
 						// NVIC_ClearPendingIRQ(TIMER0_IRQn);
 						// NVIC_ClearPendingIRQ(RADIO_IRQn);
 
@@ -307,7 +309,7 @@ static void rumpUpRadioInRx() {
 	// TODO: Maybe add a queue to store the received packets to be processed. 
 	// CHRISTOS: What is happening exactly here?
 
-	*getRXWritePacket() = *getLatestDTRpacket(); //TODO: check if this is correct
+	*getRXWritePacket() = *getNextDTRpacketReceived(); //TODO: check if this is correct
 	
 	radioMode = RX_MODE;
 }
@@ -322,6 +324,8 @@ uint8_t getDeviceRadioAddress() {
 
 void timeOutCallBack() {
 	sendDTRpacket(timerDTRpacket);
+	radioMode = TX_MODE;
+
 	switch(tx_state) {
 		case TX_RTS:
 			radioMetaInfo.timeOutRTS++;
@@ -347,7 +351,6 @@ void resetRadioMetaInfo() {
 }
 
 void startRadioCommunication() {
-
 	DTRpacket* startSignal = getTXReadPacket();
 
 	startSignal->source_id = node_id;
@@ -355,11 +358,11 @@ void startRadioCommunication() {
 	startSignal->packetSize = DTR_PACKET_HEADER_SIZE;
 
 	timerDTRpacket = startSignal;
-	setRadioTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
+	setDTRSenderTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
 	incrementTxQueueWritePos();
 	timerRadioTxState = TX_DATA_FRAME;
 	radioMode = RX_MODE;
 	rx_state = RX_WAIT_DATA_ACK;
-	startRadioTimer();
+	startDTRSenderTimer();
 }
 
