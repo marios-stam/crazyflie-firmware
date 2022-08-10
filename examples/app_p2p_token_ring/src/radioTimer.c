@@ -37,25 +37,32 @@
 #include "timers.h"
 
 static xTimerHandle timer;
+static bool timer_running = false;
 
-// void TIMER0_IRQHandler() {
-// 	timeOutCallBack();
-// }
 
 void initRadioTimer() {
-	// timer = xTimerCreate("RadioTimer", M2T(20), pdTRUE, NULL, timeOutCallBack);
-	// not needed for the P2P protocol
-}
-
-void setRadioTimer(unsigned int time_out) {
 	timer = xTimerCreate("RadioTimer", M2T(20), pdTRUE, NULL, timeOutCallBack);
 }
 
+void setRadioTimer(unsigned int time_out) {
+	xTimerChangePeriod(timer, M2T(time_out), 0);
+}
+
 void shutdownRadioTimer() {
-	xTimerStop(timer, 20);
+	if (timer_running) {
+		xTimerStop(timer, 0);
+		timer_running = false;
+	}else{
+		DEBUG_PRINT("Radio timer not running\n");
+	}
 }
 
 void startRadioTimer() {
-	xTimerStart(timer, 20);
+	if (timer_running){
+		DEBUG_PRINT("Radio timer already running\n");
+	}else{
+		xTimerStart(timer, 20);
+		timer_running = true;
+	}
 }
 
