@@ -54,10 +54,6 @@ bool isRadioRxPacketAvailable() {
 	return (rxQueueReadPos != rxQueueWritePos);
 }
 
-const DTRpacket* readRadioRxPacket() {
-	return &rxPacketQueue[rxQueueReadPos];
-}
-
 void releaseRadioRxPacket() {
 	rxQueueReadPos = (rxQueueReadPos + 1) % RX_QUEUE_SIZE;
 }
@@ -70,36 +66,50 @@ bool isRadioTxPacketAvailable() {
 	return false;
 }
 
-DTRpacket* getTXWritePacket() {
-	return &txPacketQueue[txQueueWritePos];
-}
+
 
 void sendRadioTxPacket() {
 	txQueueWritePos = (txQueueWritePos + 1) % TX_QUEUE_SIZE;
 }
 
+// write the DATA packet that needs to be sent to other nodes(from user)
+DTRpacket* getTXWritePacket() {
+	return &txPacketQueue[txQueueWritePos];
+}
+
+// read DATA to be send to others
 DTRpacket *getTXReadPacket(){
     return &txPacketQueue[txQueueReadPos];
 }
 
+
+// read the latest packet received from the radio
 DTRpacket *getRXWritePacket(){
     return &rxPacketQueue[rxQueueWritePos];
 }
 
+// read the DATA packet received from other node (from user)
+const DTRpacket* readRadioRxPacket() {
+	return &rxPacketQueue[rxQueueReadPos];
+}
 
 
+// Append index space for the next DATA packet
 void incrementTxQueueWritePos() {
     txQueueWritePos = (txQueueWritePos + 1) % TX_QUEUE_SIZE;
 }
 
+// read DATA from the next index in the queue
 void incrementTxQueueReadPos() {
     txQueueReadPos = (txQueueReadPos + 1) % TX_QUEUE_SIZE;
 }
 
+// keep the last packet in the queue for the user to read it.
 void incrementRxQueueWritePos() {
     rxQueueWritePos = (rxQueueWritePos + 1) % RX_QUEUE_SIZE;
 }
 
+// release the DATA packet from the queue (means that it has been read by the user)
 void incrementRxQueueReadPos() {
     rxQueueReadPos = (rxQueueReadPos + 1) % RX_QUEUE_SIZE;
 }
