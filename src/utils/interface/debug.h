@@ -23,6 +23,8 @@
  *
  * debug.h - Debugging utility functions
  */
+#pragma once
+
 #include "config.h"
 #include "console.h"
 #include "autoconf.h"
