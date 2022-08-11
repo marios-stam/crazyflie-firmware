@@ -66,8 +66,6 @@ bool isRadioTxPacketAvailable() {
 	return false;
 }
 
-
-
 void sendRadioTxPacket() {
 	txQueueWritePos = (txQueueWritePos + 1) % TX_QUEUE_SIZE;
 }
@@ -78,13 +76,13 @@ DTRpacket* getTXWritePacket() {
 }
 
 // read DATA to be send to others
-DTRpacket *getTXReadPacket(){
+DTRpacket* getTXReadPacket(){
     return &txPacketQueue[txQueueReadPos];
 }
 
 
 // read the latest packet received from the radio
-DTRpacket *getRXWritePacket(){
+DTRpacket* getRXWritePacket(){
     return &rxPacketQueue[rxQueueWritePos];
 }
 
@@ -94,7 +92,7 @@ const DTRpacket* readRadioRxPacket() {
 }
 
 
-// Append index space for the next DATA packet
+// Append index space for the next DATA packet that user needs to send
 void incrementTxQueueWritePos() {
     txQueueWritePos = (txQueueWritePos + 1) % TX_QUEUE_SIZE;
 }

@@ -48,29 +48,34 @@ bool isTxQueuePacket();
 
 bool isRadioRxPacketAvailable();
 
-const DTRpacket *readRadioRxPacket();
-
 void releaseRadioRxPacket();
 
 bool isRadioTxPacketAvailable();
 
-DTRpacket *getTXWritePacket();
-
 void sendRadioTxPacket();
 
-DTRpacket *getTXReadPacket();
+// write the DATA packet that needs to be sent to other nodes(from user)
+DTRpacket* getTXWritePacket();
 
-DTRpacket *getRXWritePacket();
+// read DATA to be send to others
+DTRpacket* getTXReadPacket();
 
-// same as sendRadioTxPacket()
+// read the latest packet received from the radio
+DTRpacket* getRXWritePacket();
+
+// read the DATA packet received from other node (from user)
+const DTRpacket* readRadioRxPacket();
+
+// Append index space for the next DATA packet that user needs to send
 void incrementTxQueueWritePos();
 
+// read DATA from the next index in the queue
 void incrementTxQueueReadPos();
 
-// same as releaseRadioRxPacket()
+// keep the last packet in the queue for the user to read it.
 void incrementRxQueueReadPos();
 
-// It keeps the last packet in the queue for the user to read it.
+// release the DATA packet from the queue (means that it has been read by the user)
 void incrementRxQueueWritePos();
 
 #endif /* _QUEUEING_H_ */
