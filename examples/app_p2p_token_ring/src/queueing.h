@@ -35,47 +35,62 @@
 #define _QUEUEING_H_
 
 #include "FreeRTOS.h"
+#include "queue.h"
 #include "DTR_types.h"
+#include "queuemonitor.h"
+#include "static_mem.h"
 
 #include "token_ring.h"
 
-#define RX_QUEUE_SIZE 20
-#define TX_QUEUE_SIZE 20
+#define TX_DATA_QUEUE_SIZE 4
+#define RX_SRV_QUEUE_SIZE 4
+#define RX_DATA_QUEUE_SIZE 4
 
-bool isRxQueueFull();
+#define TX_RECEIVED_WAIT_TIME 5// ms
+#define RX_RECEIVED_WAIT_TIME 5// ms
 
-bool isTxQueuePacket();
+void queueing_init();
 
-bool isRadioRxPacketAvailable();
 
-void releaseRadioRxPacket();
+//======================= checks ===========================
+bool isTX_DATAPacketAvailable(void);
+bool isRX_SRVPacketAvailable(void);
+bool isRX_DATAPacketAvailable(void);
 
-bool isRadioTxPacketAvailable();
-
-void sendRadioTxPacket();
-
-// write the DATA packet that needs to be sent to other nodes(from user)
-DTRpacket* getTXWritePacket();
+//==========================================================
+// getters
 
 // read DATA to be send to others
-DTRpacket* getTXReadPacket();
+bool getTX_DATA_packet(DTRpacket *packet);
 
-// read the latest packet received from the radio
-DTRpacket* getRXWritePacket();
+// read DATA user has received
+bool  getRX_DATA_packet(DTRpacket *packet);
 
-// read the DATA packet received from other node (from user)
-const DTRpacket* readRadioRxPacket();
+// read packet received from the radio
+bool getRX_SRV_packet(DTRpacket *packet);
 
-// Append index space for the next DATA packet that user needs to send
-void incrementTxQueueWritePos();
+//==========================================================
+// senders
 
-// read DATA from the next index in the queue
-void incrementTxQueueReadPos();
+// send DATA to be send to others
+bool sendTX_DATA_packet(DTRpacket *packet);
 
-// keep the last packet in the queue for the user to read it.
-void incrementRxQueueReadPos();
+// send DATA user has received
+bool sendRX_DATA_packet(DTRpacket *packet);
 
-// release the DATA packet from the queue (means that it has been read by the user)
-void incrementRxQueueWritePos();
+// send packet received from the radio
+bool sendRX_SRV_packet(DTRpacket *packet);
+//==========================================================
+//releasers
+
+// release packet from DATA to be send to others
+bool releaseTX_DATA_packet();
+
+// release packet from DATA user has received
+bool releaseRX_DATA_packet();
+
+// release packet from the radio
+bool releaseRX_SRV_packet();
+//==========================================================
 
 #endif /* _QUEUEING_H_ */

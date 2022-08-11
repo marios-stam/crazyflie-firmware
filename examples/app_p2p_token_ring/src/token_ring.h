@@ -33,6 +33,9 @@
 #ifndef SRC_RADIO_RADIO_H_
 #define SRC_RADIO_RADIO_H_
 
+#include "FreeRTOS.h"
+#include "timers.h"
+
 #include "stdint.h"
 #include "stdbool.h"
 #include "string.h"
@@ -58,11 +61,11 @@ void setDeviceRadioAddress (uint8_t radio_address);
 
 uint8_t getDeviceRadioAddress();
 
-void timeOutCallBack();
+void timeOutCallBack(xTimerHandle timer);
 
 void startRadioCommunication();
 
-void DTRInterruptHandler(void);
+void DTRInterruptHandler(xTimerHandle timer);
 
 const RadioInfo* getRadioInfo();
 

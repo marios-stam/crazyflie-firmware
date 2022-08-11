@@ -41,20 +41,37 @@ static xTimerHandle protocol_timer;
 
 static bool sender_timer_running = false;
 
-void startDTRProtocolTimer(void)
-{
-	protocol_timer = xTimerCreate("DTRProtTimer", M2T(), pdFALSE, NULL, DTRInterruptHandler);
+void initTimers(void) {
+	initDTRProtocolTimer();
+	initDTRSenderTimer();
 }
 
-void initDTRSenderTimer() {
+
+// =============== DTR protocol timer ===============
+
+void initDTRProtocolTimer(void){
+	protocol_timer = xTimerCreate("DTRProtTimer", M2T(DTR_PROTOCOL_PERIOD), pdFALSE, NULL, DTRInterruptHandler);
+}
+
+
+void startDTRProtocolTimer(void){
+	xTimerStart(protocol_timer, 0);
+}
+
+
+// ================ DTR sender timer ==================
+
+void initDTRSenderTimer(void) {
 	sender_timer = xTimerCreate("DTRSenderTimer", M2T(20), pdTRUE, NULL, timeOutCallBack);
 }
+
 
 void setDTRSenderTimer(unsigned int time_out) {
 	xTimerChangePeriod(sender_timer, M2T(time_out), 0);
 }
 
-void shutdownDTRSenderTimer() {
+
+void shutdownDTRSenderTimer(void) {
 	if (sender_timer_running) {
 		xTimerStop(sender_timer, 0);
 		sender_timer_running = false;
@@ -63,7 +80,8 @@ void shutdownDTRSenderTimer() {
 	}
 }
 
-void startDTRSenderTimer() {
+
+void startDTRSenderTimer(void) {
 	if (sender_timer_running){
 		DEBUG_PRINT("Radio timer already running\n");
 	}else{
@@ -71,4 +89,3 @@ void startDTRSenderTimer() {
 		sender_timer_running = true;
 	}
 }
-

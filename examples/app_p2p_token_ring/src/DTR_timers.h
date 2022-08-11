@@ -36,13 +36,24 @@
 #include "FreeRTOS.h"
 #include "DTR_types.h"
 
+#define MAX_WAIT_TIME_FOR_RTS 2500 // 2.5ms
+#define MAX_WAIT_TIME_FOR_CTS 2500 // 2.5ms
+#define MAX_WAIT_TIME_FOR_DATA_ACK 2500 // 2.5ms
 
-void initDTRSenderTimer();
+#define DTR_PROTOCOL_PERIOD 50 // ms (random value)
 
-void shutdownDTRSenderTimer();
+void initTimers(void);
+
+void initDTRProtocolTimer(void);
+
+void startDTRProtocolTimer(void);
+
+void initDTRSenderTimer(void);
 
 void setDTRSenderTimer(unsigned int time_out);
 
-void startDTRSenderTimer();
+void shutdownDTRSenderTimer(void);
+
+void startDTRSenderTimer(void);
 
 #endif /* SRC_RADIO_DTR_TIMERS_H_ */

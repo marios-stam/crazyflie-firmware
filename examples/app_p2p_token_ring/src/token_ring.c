@@ -36,9 +36,6 @@
 #define DEBUG_MODULE "TOK_RING"
 #include "debug.h"
 
-#define MAX_WAIT_TIME_FOR_RTS 2500 // 2.5ms
-#define MAX_WAIT_TIME_FOR_CTS 2500 // 2.5ms
-#define MAX_WAIT_TIME_FOR_DATA_ACK 2500 // 2.5ms
 
 static uint8_t MAX_NETWORK_SIZE = 0;
 static uint8_t node_id = 0;
@@ -48,6 +45,9 @@ static uint8_t next_target_id = 0;
 static uint8_t last_packet_source_id = 0;
 
 static DTRpacket* timerDTRpacket;
+
+static DTRpacket startPacket; // not sure if this is needed
+
 static DTRpacket servicePk = {
 	.dataSize = 0,
 	.packetSize = DTR_PACKET_HEADER_SIZE,
@@ -142,7 +142,7 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 }
 
 
-void DTRInterruptHandler(void) {
+void DTRInterruptHandler(xTimerHandle timer) {
 
 	DTRpacket* rxPk, *txPk;
 
@@ -153,8 +153,16 @@ void DTRInterruptHandler(void) {
 	switch (radioMode) {
 
 		case RX_MODE:
+			if (isRX_SRVPacketAvailable()){
+				return;
+			}
+
 			radioMetaInfo.receivedPackets++;
-			rxPk = getRXWritePacket();
+
+			//TODO: bad implementation, should be fixed
+			DTRpacket _rxPk ;
+			getRX_SRV_packet(&_rxPk);
+			rxPk = &_rxPk;
 
 			/* Receiver radio states of DTR-Protocol */
 			switch (rx_state) {
@@ -169,9 +177,8 @@ void DTRInterruptHandler(void) {
 							last_packet_source_id = rxPk->source_id;
 							/* if packet is relevant and receiver queue is not full, then
 							* push packet in the queue and prepare queue for next packet. */
-							if (!isRxQueueFull()) {
-								incrementRxQueueWritePos();
-							} else {
+							bool queueFull = sendRX_DATA_packet(rxPk);
+							if (queueFull){
 								radioMetaInfo.failedRxQueueFull++;
 							}
 						}
@@ -210,14 +217,16 @@ void DTRInterruptHandler(void) {
 						last_packet_source_id = node_id;
 						/* check if there is a DATA packet. If yes, prepare it and
 						 * send it, otherwise forward the token to the next node. */
+						
+						DTRpacket _txPk;//TODO: bad implementation, should be fixed
+						if (getTX_DATA_packet(&_txPk)) {
+							txPk = &_txPk;
 
-						if (isTxQueuePacket()) {
-							txPk = getTXReadPacket();
 							if(txPk->allToAllFlag) {
 								txPk->target_id = next_node_id;
 							}
 							if (txPk->target_id >= RADIO_DEFAULT_NETWORK_SIZE) {
-								incrementTxQueueReadPos();
+								releaseTX_DATA_packet();
 								txPk = &servicePk;
 								txPk->message_type = TOKEN_FRAME;
 								tx_state = TX_TOKEN;
@@ -260,14 +269,16 @@ void DTRInterruptHandler(void) {
 
 					if (rxPk->message_type == DATA_ACK_FRAME && rxPk->target_id == node_id) {
 						shutdownDTRSenderTimer();
-						// NVIC_ClearPendingIRQ(TIMER0_IRQn);
-						// NVIC_ClearPendingIRQ(RADIO_IRQn);
 
-						txPk = getTXReadPacket();
+						//TODO: bad implementation, should be fixed
+						DTRpacket _txPk;
+						getTX_DATA_packet(&_txPk);
+						txPk = &_txPk;
+
 						next_target_id = (txPk->target_id + 1) % MAX_NETWORK_SIZE;
 
 						if (!txPk->allToAllFlag || next_target_id == node_id) {
-							incrementTxQueueReadPos();
+							releaseTX_DATA_packet();
 							txPk = &servicePk;
 							txPk->message_type = TOKEN_FRAME;
 							tx_state = TX_TOKEN;
@@ -292,7 +303,7 @@ void DTRInterruptHandler(void) {
 			break;
 
 		case TX_MODE:
-
+			// TODO: TX MODE seems to be not needed anymore
 			rumpUpRadioInRx();
 			radioMetaInfo.sendPackets++;
 			break;
@@ -309,7 +320,8 @@ static void rumpUpRadioInRx() {
 	// TODO: Maybe add a queue to store the received packets to be processed. 
 	// CHRISTOS: What is happening exactly here?
 
-	*getRXWritePacket() = *getNextDTRpacketReceived(); //TODO: check if this is correct
+	// after FreeRTOS queue implementation this is not needed anymore
+	// *getRXWritePacket() = *getNextDTRpacketReceived(); 
 	
 	radioMode = RX_MODE;
 }
@@ -322,7 +334,7 @@ uint8_t getDeviceRadioAddress() {
 	return node_id;
 }
 
-void timeOutCallBack() {
+void timeOutCallBack(xTimerHandle timer) {
 	sendDTRpacket(timerDTRpacket);
 	radioMode = TX_MODE;
 
@@ -351,7 +363,7 @@ void resetRadioMetaInfo() {
 }
 
 void startRadioCommunication() {
-	DTRpacket* startSignal = getTXReadPacket();
+	DTRpacket* startSignal = &startPacket;
 
 	startSignal->source_id = node_id;
 	startSignal->target_id = next_node_id;
@@ -359,7 +371,7 @@ void startRadioCommunication() {
 
 	timerDTRpacket = startSignal;
 	setDTRSenderTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
-	incrementTxQueueWritePos();
+	// incrementTxQueueWritePos();
 	timerRadioTxState = TX_DATA_FRAME;
 	radioMode = RX_MODE;
 	rx_state = RX_WAIT_DATA_ACK;

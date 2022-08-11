@@ -47,11 +47,12 @@ void sendDTRpacket(const DTRpacket* packet) {
 }
 
 void p2pcallbackHandler(P2PPacket *p){
-    DTRpacket * incoming_DTR_q_latest_write = (DTRpacket *) &incoming_DTR_q[incoming_DTR_q_write_index];	
+    DTRpacket incoming_DTR;	
     uint8_t DTRpacket_size = p->data[0];
-	memcpy(incoming_DTR_q_latest_write, &(p->data[0]), DTRpacket_size);
+
+	memcpy(&incoming_DTR, &(p->data[0]), DTRpacket_size);
     
-    incoming_DTR_q_write_index = (incoming_DTR_q_write_index + 1) % INCOMING_DTR_QUEUE_SIZE;
+    sendRX_SRV_packet(&incoming_DTR);
 }
 
 

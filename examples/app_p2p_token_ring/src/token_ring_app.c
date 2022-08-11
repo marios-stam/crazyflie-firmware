@@ -63,13 +63,25 @@ void appMain(){
 
 	uint8_t my_id = get_self_id();
 
+	DEBUG_PRINT("Initializing queues ...\n");
+	queueing_init();
+
+	DEBUG_PRINT("Initializing token ring ...\n");
 	initTokenRing(NETWORK_SIZE, my_id);
-	initDTRSenderTimer();
+	
+	DEBUG_PRINT("Initializing timers ...\n");
+	initTimers();
+
+	DEBUG_PRINT("Starting protocol timer ...\n");
+	startDTRProtocolTimer();
 
 	// Register the callback function so that the CF can receive packets as well.
 	p2pRegisterCB(p2pcallbackHandler);
 
-	startRadioCommunication();
+	if (my_id == 4){
+		startRadioCommunication();
+	}
+		
 
 	while (1)
 	{
