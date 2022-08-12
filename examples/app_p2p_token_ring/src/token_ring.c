@@ -174,9 +174,11 @@ void DTRInterruptHandler(xTimerHandle timer) {
 			}
 
 			DEBUG_PRINT("===============================================================\n");
+			DEBUG_PRINT("Is TX_DATA Queue Empty: %d\n", !isTX_DATAPacketAvailable());
+
 
 			DEBUG_PRINT("rx_state: %s\n", getRXState(rx_state));
-
+			
 			printDTRPacket(rxPk);
 
 			/* Receiver radio states of DTR-Protocol */
@@ -221,7 +223,8 @@ void DTRInterruptHandler(xTimerHandle timer) {
 						setupRadioTx(&servicePk, TX_CTS);
 						return;
 					}
-
+					
+					DEBUG_PRINT("\nRECEIVED PACKET NOT HANDLED\n");
 					/* drop all other packets and restart receiver */
 					break;
 
@@ -244,6 +247,11 @@ void DTRInterruptHandler(xTimerHandle timer) {
 								txPk->target_id = next_node_id;
 							}
 							if (txPk->target_id >= RADIO_DEFAULT_NETWORK_SIZE) {
+								DEBUG_PRINT("Releasing TX DATA Packet because target > default:\n");
+								printDTRPacket(txPk);
+
+								DEBUG_PRINT("Is Queue Empty: %d\n", !isTX_DATAPacketAvailable());
+								
 								releaseTX_DATA_packet();
 								txPk = &servicePk;
 								txPk->message_type = TOKEN_FRAME;
@@ -298,6 +306,11 @@ void DTRInterruptHandler(xTimerHandle timer) {
 						next_target_id = (txPk->target_id + 1) % MAX_NETWORK_SIZE;
 
 						if (!txPk->allToAllFlag || next_target_id == node_id) {
+							DEBUG_PRINT("Releasing TX DATA Packet:\n");
+							printDTRPacket(txPk);
+
+							DEBUG_PRINT("Is Queue Empty: %d\n", !isTX_DATAPacketAvailable());
+
 							releaseTX_DATA_packet();
 							txPk = &servicePk;
 							txPk->message_type = TOKEN_FRAME;
@@ -355,7 +368,15 @@ uint8_t getDeviceRadioAddress() {
 }
 
 void timeOutCallBack(xTimerHandle timer) {
-	DEBUG_PRINT("Sending packet after timeout: %s\n",getMessageType(timerDTRpacket->message_type));
+	DEBUG_PRINT("Sending packet after timeout: %s",getMessageType(timerDTRpacket->message_type));
+	if (timerDTRpacket->message_type == DATA_FRAME) {
+		for (size_t i = 0; i <timerDTRpacket->dataSize; i++)
+		{
+			DEBUG_PRINT(" %d ",timerDTRpacket->data[i]);
+		}
+	}
+	DEBUG_PRINT("\n");
+
 	sendDTRpacket(timerDTRpacket);
 	radioMode = TX_MODE;
 
@@ -453,6 +474,7 @@ const char* getTXState(uint8_t tx_state){
 } 
 
 void printDTRPacket(DTRpacket* packet){
+	DEBUG_PRINT("\n\nDTR Packet:\n");
 	DEBUG_PRINT("Packet Size: %d\n", packet->packetSize);
 	DEBUG_PRINT("Message Type: %s\n", getMessageType(packet->message_type));
 	DEBUG_PRINT("Source ID: %d\n", packet->source_id);

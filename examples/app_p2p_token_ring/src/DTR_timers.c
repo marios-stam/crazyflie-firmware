@@ -84,7 +84,8 @@ void setDTRSenderTimer(unsigned int time_out) {
 
 void shutdownDTRSenderTimer(void) {
 	if (sender_timer_running) {
-		xTimerStop(sender_timer, 0);
+		xTimerStop(sender_timer, 20);
+		DEBUG_PRINT("Stopped spamming messages\n");
 		sender_timer_running = false;
 	}else{
 		DEBUG_PRINT("Radio timer not running\n");

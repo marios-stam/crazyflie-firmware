@@ -81,7 +81,32 @@ void appMain(){
 	if (my_id == 0){
 		DEBUG_PRINT("Starting communication...\n");
 		startRadioCommunication();
-	}
+
+		DTRpacket  testSignal;
+		testSignal.message_type = DATA_FRAME;
+		testSignal.source_id = my_id;
+		testSignal.target_id = 1;
+		testSignal.data[0] = 66;
+		testSignal.dataSize = 1;
+		testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
+
+		bool res = sendTX_DATA_packet(&testSignal);
+		if (res){
+			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
+		}
+		else{
+			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
+		}
+
+		res = sendTX_DATA_packet(&testSignal);
+		if (res){
+			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
+		}
+		else{
+			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
+		}
+
+	}	
 
 	DTRpacket received_packet;
 	while(1){
