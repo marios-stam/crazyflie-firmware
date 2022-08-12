@@ -36,11 +36,11 @@
 #include "FreeRTOS.h"
 #include "DTR_types.h"
 
-#define MAX_WAIT_TIME_FOR_RTS 2500 // 2.5ms
-#define MAX_WAIT_TIME_FOR_CTS 2500 // 2.5ms
-#define MAX_WAIT_TIME_FOR_DATA_ACK 2500 // 2.5ms
+#define MAX_WAIT_TIME_FOR_RTS 50 // 2.5ms
+#define MAX_WAIT_TIME_FOR_CTS 50 // 2.5ms
+#define MAX_WAIT_TIME_FOR_DATA_ACK 50 // 2.5ms
 
-#define DTR_PROTOCOL_PERIOD 50 // ms (random value)
+#define DTR_PROTOCOL_PERIOD 5 // ms (random value)
 
 void initTimers(void);
 

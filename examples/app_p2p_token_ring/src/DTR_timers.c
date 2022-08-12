@@ -41,6 +41,8 @@ static xTimerHandle protocol_timer;
 
 static bool sender_timer_running = false;
 
+static char type_to_spam[15];
+
 void initTimers(void) {
 	initDTRProtocolTimer();
 	initDTRSenderTimer();
@@ -50,12 +52,12 @@ void initTimers(void) {
 // =============== DTR protocol timer ===============
 
 void initDTRProtocolTimer(void){
-	protocol_timer = xTimerCreate("DTRProtTimer", M2T(DTR_PROTOCOL_PERIOD), pdFALSE, NULL, DTRInterruptHandler);
+	protocol_timer = xTimerCreate("DTRProtTimer", M2T(DTR_PROTOCOL_PERIOD), pdTRUE, NULL, DTRInterruptHandler);
 }
 
 
 void startDTRProtocolTimer(void){
-	xTimerStart(protocol_timer, 0);
+	xTimerStart(protocol_timer, 20);
 }
 
 
@@ -67,6 +69,15 @@ void initDTRSenderTimer(void) {
 
 
 void setDTRSenderTimer(unsigned int time_out) {
+	
+	if(time_out == MAX_WAIT_TIME_FOR_RTS ){
+		strcpy(type_to_spam, "RTS");
+	}else if (time_out == MAX_WAIT_TIME_FOR_CTS ){
+		strcpy(type_to_spam, "CTS");
+	}else if (time_out == MAX_WAIT_TIME_FOR_DATA_ACK ){
+		strcpy(type_to_spam, "DATA");
+	}
+
 	xTimerChangePeriod(sender_timer, M2T(time_out), 0);
 }
 
@@ -85,6 +96,7 @@ void startDTRSenderTimer(void) {
 	if (sender_timer_running){
 		DEBUG_PRINT("Radio timer already running\n");
 	}else{
+		DEBUG_PRINT("Started spamming %s\n", type_to_spam);
 		xTimerStart(sender_timer, 20);
 		sender_timer_running = true;
 	}

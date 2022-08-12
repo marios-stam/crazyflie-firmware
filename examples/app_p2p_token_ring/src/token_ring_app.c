@@ -44,7 +44,7 @@
 
 #include "token_ring.h"
 
-#define NETWORK_SIZE 3 
+#define NETWORK_SIZE 2 
 
 uint8_t get_self_id(void){
 	// Get the current address of the crazyflie and 
@@ -78,13 +78,14 @@ void appMain(){
 	// Register the callback function so that the CF can receive packets as well.
 	p2pRegisterCB(p2pcallbackHandler);
 
-	if (my_id == 4){
+	if (my_id == 0){
+		DEBUG_PRINT("Starting communication...\n");
 		startRadioCommunication();
 	}
-		
 
-	while (1)
-	{
-		// do nothing
+	DTRpacket received_packet;
+	while(1){
+		getRX_DATA_packet(&received_packet);
+		DEBUG_PRINT("Received packet from other peer: %d\n", received_packet.data[0]);
 	}
 }

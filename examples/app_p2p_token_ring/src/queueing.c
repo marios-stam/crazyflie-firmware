@@ -80,13 +80,15 @@ bool isRX_DATAPacketAvailable(void) {
 
 // read DATA to be send to others
 bool getTX_DATA_packet(DTRpacket *packet) {
-    bool received_success = xQueuePeek(TX_DATA_queue, packet, M2T( TX_RECEIVED_WAIT_TIME )) == pdTRUE;
+	// notice that xQueuePeek is used instead of xQueueReceive, because the packet is not removed from the queue
+    //TODO: make a separate function for this
+	bool received_success = xQueuePeek(TX_DATA_queue, packet, M2T( TX_RECEIVED_WAIT_TIME )) == pdTRUE;
 	return received_success;
 }
 
 // read the DATA packet received from other node (from user)
 bool  getRX_DATA_packet(DTRpacket *packet) {
-	bool received_success = xQueueReceive(RX_DATA_queue, packet, M2T(RX_RECEIVED_WAIT_TIME)) == pdTRUE;
+	bool received_success = xQueueReceive(RX_DATA_queue, packet, portMAX_DELAY) == pdTRUE;
 	if (!received_success) {
 		DEBUG_PRINT("RX_DATA queue empty\n");
 	}
@@ -98,7 +100,7 @@ bool  getRX_DATA_packet(DTRpacket *packet) {
 bool getRX_SRV_packet(DTRpacket *packet){
 	bool received_success = xQueueReceive(RX_SRV_queue, packet, M2T(RX_RECEIVED_WAIT_TIME)) == pdTRUE;
 	if (!received_success) {
-		DEBUG_PRINT("RX_SRV queue empty\n");
+		DEBUG_PRINT("Not able to receive RX_SRV packet from Q\n");
 	}
 
     return received_success;
@@ -115,7 +117,6 @@ bool sendTX_DATA_packet(DTRpacket *packet) {
 	return res;
 }
 
-// keep the last packet in the queue for the user to read it.
 bool sendRX_DATA_packet(DTRpacket *packet) {
 	bool res = xQueueSend(RX_DATA_queue,(void *) packet, 0) == pdTRUE;
 	if (!res) {
@@ -125,28 +126,29 @@ bool sendRX_DATA_packet(DTRpacket *packet) {
 	return res;
 }
 
-// send the SRV packet to the radio
 bool sendRX_SRV_packet(DTRpacket *packet) {
 	bool res = xQueueSend(RX_SRV_queue,(void *) packet, 0) == pdTRUE;
 	if (!res) {
-		DEBUG_PRINT("RX_SRV queue busy\n");
+		DEBUG_PRINT("Not able to insert RX_SRV packet in Q \n");
 	}
-
 	return res;
 }
 
 
 // ======================= releasers =======================
 bool releaseTX_DATA_packet() {
-	return xQueueReceive(TX_DATA_queue, NULL, M2T(TX_RECEIVED_WAIT_TIME)) == pdTRUE;
+	DTRpacket packet;
+	return xQueueReceive(TX_DATA_queue, &packet, M2T(TX_RECEIVED_WAIT_TIME)) == pdTRUE;
 }
 
 // release the DATA packet from the queue (means that it has been read by the user)
 bool releaseRX_DATA_packet() {
-	return xQueueReceive(RX_DATA_queue, NULL, M2T(RX_RECEIVED_WAIT_TIME)) == pdTRUE;
+	DTRpacket packet;
+	return xQueueReceive(RX_DATA_queue, &packet, M2T(RX_RECEIVED_WAIT_TIME)) == pdTRUE;
 }
 
 // release the SRV packet from the queue (means that it has been read by the user)
 bool releaseRX_SRV_packet() {
-	return xQueueReceive(RX_SRV_queue, NULL, M2T(RX_RECEIVED_WAIT_TIME)) == pdTRUE;
+	DTRpacket packet;
+	return xQueueReceive(RX_SRV_queue, &packet, M2T(RX_RECEIVED_WAIT_TIME)) == pdTRUE;
 }

@@ -39,7 +39,6 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "string.h"
-#include "debug.h"
 #include "radiolink.h"
 
 #include "DTR_types.h"
@@ -71,4 +70,11 @@ const RadioInfo* getRadioInfo();
 
 void resetRadioMetaInfo();
 
+void printDTRPacket(DTRpacket* packet);
+
+const char* getMessageType(uint8_t message_type);
+
+const char* getRXState(uint8_t rx_state);
+
+const char* getTXState(uint8_t tx_state);
 #endif /* SRC_RADIO_RADIO_H_ */
