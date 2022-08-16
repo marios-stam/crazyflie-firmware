@@ -70,7 +70,10 @@ bool  getRX_DATA_packet(DTRpacket *packet);
 // read packet received from the radio
 bool getRX_SRV_packet(DTRpacket *packet);
 
-bool receiveRX_SRV_packet_wait_until(DTRpacket* packet);
+// Blocks to wait for a packet to be received for a given time
+// new_packet_received --> True if a new packet has been received and False if the timeout has been reached
+bool receiveRX_SRV_packet_wait_until(DTRpacket* packet, uint32_t timeout_ms, bool *new_packet_received);
+
 //==========================================================
 // senders
 

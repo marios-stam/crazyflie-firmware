@@ -61,6 +61,7 @@ static RxStates rx_state;
 static RadioInfo radioMetaInfo;
 static uint32_t protocol_timeout_ms;
 
+static uint8_t my_id ;
 
 static void setNodeIds(uint8_t networkSize, uint8_t device_id) {
 	MAX_NETWORK_SIZE = networkSize;
@@ -72,6 +73,7 @@ static void setNodeIds(uint8_t networkSize, uint8_t device_id) {
 }
 
 void initTokenRing(uint8_t networkSize, uint8_t device_id) {
+	my_id = get_self_id();
 
 	/* Network node configuration*/
 	setNodeIds(networkSize, device_id);
@@ -79,7 +81,6 @@ void initTokenRing(uint8_t networkSize, uint8_t device_id) {
 	/* Interrupt Configuration */
 	// NVIC_SetPriority(RADIO_IRQn, 2);
 	// NVIC_EnableIRQ(RADIO_IRQn);
-
 
 	radioMode = RX_MODE;
 	rx_state = RX_IDLE;
@@ -148,12 +149,13 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 // 	return (now_ms - protocol_timeout_ms) > PROTOCOL_TIMEOUT_MS;
 // }
 
-// static void resetProtocol(void){
-// 	rx_state = RX_IDLE;
-// 	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
-// 	emptyQueues();
-// 	shutdownDTRSenderTimer();
-// }
+static void resetProtocol(void){
+	rx_state = RX_IDLE;
+	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
+	emptyQueues();
+	shutdownDTRSenderTimer();
+	last_packet_source_id = 255;
+}
 
 static uint8_t send_data_to_peer_counter = 0;
 
@@ -164,9 +166,18 @@ void DTRInterruptHandler(void *param) {
 	//TODO: bad implementation, should be fixed
 	DTRpacket _rxPk ;
 	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
+	bool new_packet_received;
 
-	while ( receiveRX_SRV_packet_wait_until(&_rxPk)) {
-		
+	while ( receiveRX_SRV_packet_wait_until(&_rxPk, PROTOCOL_TIMEOUT_MS,&new_packet_received) ){
+			if (!new_packet_received) {
+				DEBUG_PRINT("\nPROTOCOL TIMEOUT!\n");
+				if (my_id != 0){
+					resetProtocol();
+				}
+				
+				continue;
+			}
+
 			rxPk = &_rxPk;	
 			
 			radioMetaInfo.receivedPackets++;
@@ -342,7 +353,6 @@ void DTRInterruptHandler(void *param) {
 	
 }
 
-
 void setDeviceRadioAddress(uint8_t radio_address) {
 	node_id = radio_address;
 }
@@ -475,6 +485,14 @@ void printDTRPacket(DTRpacket* packet){
 	}
 
 	DEBUG_PRINT("\n\n");
+}
+
+uint8_t get_self_id(void){
+	// Get the current address of the crazyflie and 
+	//keep the last 2 digits as the id of the crazyflie.
+	uint64_t address = configblockGetRadioAddress();
+	uint8_t my_id = (uint8_t)((address)&0x00000000ff);
+	return my_id;
 }
 
 LOG_GROUP_START(DTR_P2P)

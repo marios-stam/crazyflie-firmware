@@ -106,8 +106,9 @@ bool getRX_SRV_packet(DTRpacket *packet){
     return received_success;
 }
 
-bool receiveRX_SRV_packet_wait_until(DTRpacket* packet) {
-	return xQueueReceive(RX_SRV_queue, packet, portMAX_DELAY);
+bool receiveRX_SRV_packet_wait_until(DTRpacket* packet, uint32_t timeout_ms, bool *new_packet_received) {
+	*new_packet_received = xQueueReceive(RX_SRV_queue, packet, 	M2T(timeout_ms) ) == pdTRUE;
+	return true;
 }
 
 // ======================== senders ========================

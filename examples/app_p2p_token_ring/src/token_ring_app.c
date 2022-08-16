@@ -45,15 +45,6 @@
 #include "token_ring.h"
 
 
-
-uint8_t get_self_id(void){
-	// Get the current address of the crazyflie and 
-	//keep the last 2 digits as the id of the crazyflie.
-	uint64_t address = configblockGetRadioAddress();
-	uint8_t my_id = (uint8_t)((address)&0x00000000ff);
-	return my_id;
-}
-
 void appMain(){
 
 	// Initialize the p2p packet

@@ -41,6 +41,8 @@
 #include "string.h"
 #include "radiolink.h"
 #include "log.h"
+#include "configblock.h"
+
 
 #include "DTR_types.h"
 #include "DTR_timers.h"
@@ -80,4 +82,7 @@ const char* getMessageType(uint8_t message_type);
 const char* getRXState(uint8_t rx_state);
 
 const char* getTXState(uint8_t tx_state);
+
+uint8_t get_self_id(void);
+
 #endif /* SRC_RADIO_RADIO_H_ */
