@@ -158,3 +158,22 @@ bool releaseRX_SRV_packet() {
 	DTRpacket packet;
 	return xQueueReceive(RX_SRV_queue, &packet, M2T(RX_RECEIVED_WAIT_TIME)) == pdTRUE;
 }
+
+
+void emptyTX_DATA_queue(void){
+	xQueueReset(TX_DATA_queue);
+}
+
+void emptyRX_DATA_queue(void){
+	xQueueReset(RX_DATA_queue);
+}
+
+void emptyRX_SRV_queue(void){
+	xQueueReset(RX_SRV_queue);
+}
+
+void emptyQueues(void){
+	emptyTX_DATA_queue();
+	emptyRX_DATA_queue();
+	emptyRX_SRV_queue();
+}

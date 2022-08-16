@@ -59,7 +59,7 @@ static RxStates rx_state;
 
 
 static RadioInfo radioMetaInfo;
-
+static uint32_t protocol_timeout_ms;
 
 
 static void setNodeIds(uint8_t networkSize, uint8_t device_id) {
@@ -143,6 +143,19 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 
 }
 
+// static bool isProtocolTimedOut(void) {
+// 	uint32_t now_ms = T2M(xTaskGetTickCount());
+// 	return (now_ms - protocol_timeout_ms) > PROTOCOL_TIMEOUT_MS;
+// }
+
+// static void resetProtocol(void){
+// 	rx_state = RX_IDLE;
+// 	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
+// 	emptyQueues();
+// 	shutdownDTRSenderTimer();
+// }
+
+static uint8_t send_data_to_peer_counter = 0;
 
 void DTRInterruptHandler(void *param) {
 
@@ -150,8 +163,10 @@ void DTRInterruptHandler(void *param) {
 
 	//TODO: bad implementation, should be fixed
 	DTRpacket _rxPk ;
-	
-	while ( receiveRX_SRV_packet_wait_until(&_rxPk) ) {
+	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
+
+	while ( receiveRX_SRV_packet_wait_until(&_rxPk)) {
+		
 			rxPk = &_rxPk;	
 			
 			radioMetaInfo.receivedPackets++;
@@ -278,7 +293,6 @@ void DTRInterruptHandler(void *param) {
 					break;
 
 				case RX_WAIT_DATA_ACK:
-
 					if (rxPk->message_type == DATA_ACK_FRAME && rxPk->target_id == node_id) {
 						shutdownDTRSenderTimer();
 
@@ -286,8 +300,8 @@ void DTRInterruptHandler(void *param) {
 						DTRpacket _txPk;
 						getTX_DATA_packet(&_txPk);
 						txPk = &_txPk;
-
-						next_target_id = (txPk->target_id + 1) % MAX_NETWORK_SIZE;
+						
+						next_target_id = (txPk->target_id + send_data_to_peer_counter + 1) % MAX_NETWORK_SIZE;
 						DEBUG_PRINT("next_target_id: %d\n", next_target_id);
 
 						if (!txPk->allToAllFlag || next_target_id == node_id) {
@@ -300,8 +314,12 @@ void DTRInterruptHandler(void *param) {
 							txPk = &servicePk;
 							txPk->message_type = TOKEN_FRAME;
 							tx_state = TX_TOKEN;
-						} else {
+							send_data_to_peer_counter = 0;
+						} else {								
 							txPk->target_id = next_target_id;
+							send_data_to_peer_counter++;
+							DEBUG_PRINT("Sending DATA to next peer..");
+							DEBUG_PRINT("with target id: %d\n", txPk->target_id);
 							tx_state = TX_DATA_FRAME;
 						}
 						setupRadioTx(txPk, tx_state);
@@ -316,7 +334,10 @@ void DTRInterruptHandler(void *param) {
 					continue;
 				}
 
-			/* restart receiver */
+			// DEBUG_PRINT("Packet Received cannot be processed\n");
+			// DEBUG_PRINT("RESETTING PROTCOL\n");
+
+			// resetProtocol();
 		}
 	
 }
@@ -456,3 +477,7 @@ void printDTRPacket(DTRpacket* packet){
 	DEBUG_PRINT("\n\n");
 }
 
+LOG_GROUP_START(DTR_P2P)
+	LOG_ADD(LOG_UINT8, rx_state, &rx_state)
+	LOG_ADD(LOG_UINT8, tx_state, &tx_state)
+LOG_GROUP_STOP(DTR_P2P)

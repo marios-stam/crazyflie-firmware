@@ -93,6 +93,18 @@ bool releaseRX_DATA_packet();
 
 // release packet from the radio
 bool releaseRX_SRV_packet();
+
 //==========================================================
+// emptiers
+
+void emptyTX_DATA_queue(void);
+
+void emptyRX_DATA_queue(void);
+
+void emptyRX_SRV_queue(void);
+
+void emptyQueues(void);
+//==========================================================
+
 
 #endif /* _QUEUEING_H_ */

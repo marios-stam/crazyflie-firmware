@@ -77,11 +77,6 @@ enum message_types {
 	DATA_ACK_FRAME = 4,
 };
 
-enum RADIO_Power {
-	enable = 1,
-	disable = 0
-};
-
 // |--------------------|
 // |   PACKET FORMAT    |
 // |--------------------|

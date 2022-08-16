@@ -40,13 +40,15 @@
 #include "stdbool.h"
 #include "string.h"
 #include "radiolink.h"
+#include "log.h"
 
 #include "DTR_types.h"
 #include "DTR_timers.h"
 #include "p2p_interface.h"
 #include "queueing.h"
 
-#define NETWORK_SIZE 4
+#define NETWORK_SIZE 3
+#define PROTOCOL_TIMEOUT_MS 4 * 1000.0f // ms 
 
 #define RADIO_BROADCAST_ADDRESS 0xFF
 #define RADIO_NRF51_BOARD_ADDRESS 0x00
