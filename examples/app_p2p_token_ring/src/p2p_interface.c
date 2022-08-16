@@ -36,6 +36,7 @@ static DTRpacket incoming_DTR_q[INCOMING_DTR_QUEUE_SIZE];
 static uint8_t incoming_DTR_q_read_index= 0;
 static uint8_t incoming_DTR_q_write_index = 0;
 
+static DTRpacket prev_received = {0};
 
 void sendDTRpacket(const DTRpacket* packet) {
     p2p_TXpacket.port=0x00;
@@ -48,10 +49,19 @@ void sendDTRpacket(const DTRpacket* packet) {
 
 void p2pcallbackHandler(P2PPacket *p){
     DTRpacket incoming_DTR;	
+
     uint8_t DTRpacket_size = p->data[0];
 
 	memcpy(&incoming_DTR, &(p->data[0]), DTRpacket_size);
     
+    if (incoming_DTR.message_type == prev_received.message_type && 
+        incoming_DTR.target_id == prev_received.target_id &&
+        incoming_DTR.source_id == prev_received.source_id) {
+        // DEBUG_PRINT("Duplicate packet received\n");
+        // return;
+    }
+
+    prev_received = incoming_DTR;
     sendRX_SRV_packet(&incoming_DTR);
 }
 

@@ -46,7 +46,8 @@
 #include "p2p_interface.h"
 #include "queueing.h"
 
-#define RADIO_DEFAULT_NETWORK_SIZE 2
+#define NETWORK_SIZE 4
+
 #define RADIO_BROADCAST_ADDRESS 0xFF
 #define RADIO_NRF51_BOARD_ADDRESS 0x00
 
@@ -64,7 +65,7 @@ void timeOutCallBack(xTimerHandle timer);
 
 void startRadioCommunication();
 
-void DTRInterruptHandler(xTimerHandle timer);
+void DTRInterruptHandler(void *param);
 
 const RadioInfo* getRadioInfo();
 

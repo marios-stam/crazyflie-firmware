@@ -34,26 +34,39 @@
 #define SRC_RADIO_DTR_TIMERS_H_
 
 #include "FreeRTOS.h"
-#include "DTR_types.h"
+#include "task.h"
+#include <stdlib.h>
 
-#define MAX_WAIT_TIME_FOR_RTS 50 // 2.5ms
-#define MAX_WAIT_TIME_FOR_CTS 50 // 2.5ms
-#define MAX_WAIT_TIME_FOR_DATA_ACK 50 // 2.5ms
+#include "DTR_types.h"
+#include "token_ring.h"
+#include "timers.h"
+
+#define MAX_WAIT_TIME_FOR_RTS      100 // 2.5ms
+#define MAX_WAIT_TIME_FOR_CTS      101 // 2.5ms
+#define MAX_WAIT_TIME_FOR_DATA_ACK 102 // 2.5ms
 
 #define DTR_PROTOCOL_PERIOD 5 // ms (random value)
 
+
+// DTR PROTOCOL TASK
+#define DTR_PROTOCOL_TASK_STACK_SIZE 2 * configMINIMAL_STACK_SIZE
+#define DTR_PROTOCOL_TASK_PRIORITY 1 //Higher number higher priority
+
 void initTimers(void);
 
+// =============== DTR protocol timer ===============
 void initDTRProtocolTimer(void);
 
-void startDTRProtocolTimer(void);
+void startDTRProtocol(void);
 
+
+// ================ DTR sender timer ==================
 void initDTRSenderTimer(void);
 
-void setDTRSenderTimer(unsigned int time_out);
+// void setDTRSenderTimer(unsigned int time_out);
 
 void shutdownDTRSenderTimer(void);
 
-void startDTRSenderTimer(void);
+void startDTRSenderTimer(unsigned int time_out);
 
 #endif /* SRC_RADIO_DTR_TIMERS_H_ */

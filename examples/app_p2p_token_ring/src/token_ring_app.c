@@ -44,7 +44,7 @@
 
 #include "token_ring.h"
 
-#define NETWORK_SIZE 2 
+
 
 uint8_t get_self_id(void){
 	// Get the current address of the crazyflie and 
@@ -55,7 +55,6 @@ uint8_t get_self_id(void){
 }
 
 void appMain(){
-	DEBUG_PRINT("Waiting for activation ...\n");
 
 	// Initialize the p2p packet
 	static P2PPacket p_reply;
@@ -73,7 +72,9 @@ void appMain(){
 	initTimers();
 
 	DEBUG_PRINT("Starting protocol timer ...\n");
-	startDTRProtocolTimer();
+	startDTRProtocol();
+
+	vTaskDelay(2000);
 
 	// Register the callback function so that the CF can receive packets as well.
 	p2pRegisterCB(p2pcallbackHandler);
@@ -88,6 +89,7 @@ void appMain(){
 		testSignal.target_id = 1;
 		testSignal.data[0] = 66;
 		testSignal.dataSize = 1;
+		testSignal.allToAllFlag = 1;
 		testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
 
 		bool res = sendTX_DATA_packet(&testSignal);
@@ -98,6 +100,16 @@ void appMain(){
 			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
 		}
 
+		testSignal.data[0] = 123;
+		res = sendTX_DATA_packet(&testSignal);
+		if (res){
+			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
+		}
+		else{
+			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
+		}
+
+		testSignal.data[0] = 1;
 		res = sendTX_DATA_packet(&testSignal);
 		if (res){
 			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
@@ -109,8 +121,12 @@ void appMain(){
 	}	
 
 	DTRpacket received_packet;
+	uint32_t start = T2M(xTaskGetTickCount());
 	while(1){
 		getRX_DATA_packet(&received_packet);
 		DEBUG_PRINT("Received packet from other peer: %d\n", received_packet.data[0]);
+		uint32_t dt = T2M(xTaskGetTickCount()) - start;
+		DEBUG_PRINT("Time elapsed: %.2f  msec\n", dt/1000.0);
+		
 	}
 }

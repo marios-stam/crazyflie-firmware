@@ -44,7 +44,7 @@
 
 #include "debug.h"
 #define TX_DATA_QUEUE_SIZE 4
-#define RX_SRV_QUEUE_SIZE 4
+#define RX_SRV_QUEUE_SIZE 20
 #define RX_DATA_QUEUE_SIZE 4
 
 #define TX_RECEIVED_WAIT_TIME 5// ms
@@ -70,6 +70,7 @@ bool  getRX_DATA_packet(DTRpacket *packet);
 // read packet received from the radio
 bool getRX_SRV_packet(DTRpacket *packet);
 
+bool receiveRX_SRV_packet_wait_until(DTRpacket* packet);
 //==========================================================
 // senders
 

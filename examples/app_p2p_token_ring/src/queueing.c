@@ -106,6 +106,10 @@ bool getRX_SRV_packet(DTRpacket *packet){
     return received_success;
 }
 
+bool receiveRX_SRV_packet_wait_until(DTRpacket* packet) {
+	return xQueueReceive(RX_SRV_queue, packet, portMAX_DELAY);
+}
+
 // ======================== senders ========================
 
 bool sendTX_DATA_packet(DTRpacket *packet) {
@@ -137,7 +141,7 @@ bool sendRX_SRV_packet(DTRpacket *packet) {
 
 // ======================= releasers =======================
 bool releaseTX_DATA_packet() {
-	DEBUG_PRINT("Releasing TX DATA Packet...\n");
+	// DEBUG_PRINT("Releasing TX DATA Packet...\n");
 
 	DTRpacket packet;
 	return xQueueReceive(TX_DATA_queue, &packet, M2T(TX_RECEIVED_WAIT_TIME)) == pdTRUE;
