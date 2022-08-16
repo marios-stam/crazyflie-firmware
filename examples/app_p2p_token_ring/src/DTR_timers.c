@@ -84,8 +84,8 @@ void initDTRSenderTimer(void) {
 
 
 void shutdownDTRSenderTimer(void) {
-	if (sender_timer_running) {
-		xTimerStop(sender_timer, 20);
+	if (xTimerIsTimerActive(sender_timer)==pdTRUE) {
+		xTimerStop(sender_timer, 0);
 		// DEBUG_PRINT("Stopped spamming messages\n");
 		sender_timer_running = false;
 	}else{

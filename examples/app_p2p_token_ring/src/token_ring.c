@@ -150,6 +150,7 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 // }
 
 static void resetProtocol(void){
+	DEBUG_PRINT("\nResetting protocol\n");
 	rx_state = RX_IDLE;
 	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
 	emptyQueues();

@@ -71,13 +71,7 @@ void loadTXPacketsForTesting(void){
 	}
 }
 
-
-void appMain(){
-
-	// Initialize the p2p packet
-	static P2PPacket p_reply;
-	p_reply.port = 0x00;
-
+static void DTRProtocolInitialization(void){
 	my_id = get_self_id();
 
 	DEBUG_PRINT("Initializing queues ...\n");
@@ -91,7 +85,11 @@ void appMain(){
 
 	DEBUG_PRINT("Starting protocol timer ...\n");
 	startDTRProtocol();
+}
 
+void appMain(){
+
+	DTRProtocolInitialization();
 	vTaskDelay(2000);
 
 	// Register the callback function so that the CF can receive packets as well.
@@ -101,7 +99,7 @@ void appMain(){
 		DEBUG_PRINT("Starting communication...\n");
 		startRadioCommunication();
 		loadTXPacketsForTesting();
-	}	
+	}
 
 	DTRpacket received_packet;
 	uint32_t start = T2M(xTaskGetTickCount());
@@ -110,5 +108,12 @@ void appMain(){
 		uint32_t dt = T2M(xTaskGetTickCount()) - start;
 		DEBUG_PRINT("Received data from %d : %d  --> Time elapsed: %lu msec\n",received_packet.source_id, received_packet.data[0],dt);
 		start = T2M(xTaskGetTickCount());
+
+		if (my_id == 1 && received_packet.data[0] == 104){
+			received_packet.source_id = my_id;
+			received_packet.data[0] = 123;
+			DEBUG_PRINT("Sending response...\n");
+			sendTX_DATA_packet(&received_packet);
+		}
 	}
 }
