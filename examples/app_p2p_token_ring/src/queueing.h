@@ -43,9 +43,9 @@
 #include "token_ring.h"
 
 #include "debug.h"
-#define TX_DATA_QUEUE_SIZE 4
+#define TX_DATA_QUEUE_SIZE 10
 #define RX_SRV_QUEUE_SIZE 20
-#define RX_DATA_QUEUE_SIZE 4
+#define RX_DATA_QUEUE_SIZE 10
 
 #define TX_RECEIVED_WAIT_TIME 5// ms
 #define RX_RECEIVED_WAIT_TIME 5// ms

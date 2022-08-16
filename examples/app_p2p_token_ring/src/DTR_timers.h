@@ -41,9 +41,9 @@
 #include "token_ring.h"
 #include "timers.h"
 
-#define MAX_WAIT_TIME_FOR_RTS      100 // 2.5ms
-#define MAX_WAIT_TIME_FOR_CTS      101 // 2.5ms
-#define MAX_WAIT_TIME_FOR_DATA_ACK 102 // 2.5ms
+#define MAX_WAIT_TIME_FOR_RTS      10 // 2.5ms
+#define MAX_WAIT_TIME_FOR_CTS      11 // 2.5ms
+#define MAX_WAIT_TIME_FOR_DATA_ACK 12 // 2.5ms
 
 #define DTR_PROTOCOL_PERIOD 5 // ms (random value)
 

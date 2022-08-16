@@ -49,7 +49,7 @@
 #include "p2p_interface.h"
 #include "queueing.h"
 
-#define NETWORK_SIZE 3
+#define NETWORK_SIZE 4
 #define PROTOCOL_TIMEOUT_MS 4 * 1000.0f // ms 
 
 #define RADIO_BROADCAST_ADDRESS 0xFF

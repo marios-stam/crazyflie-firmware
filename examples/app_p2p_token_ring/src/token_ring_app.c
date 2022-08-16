@@ -43,6 +43,33 @@
 #include "debug.h"
 
 #include "token_ring.h"
+static uint8_t my_id;
+
+void loadTXPacketsForTesting(void){
+	DTRpacket  testSignal;
+	testSignal.message_type = DATA_FRAME;
+	testSignal.source_id = my_id;
+	testSignal.target_id = 1;
+	
+	uint8_t data_size = 25;
+	for (int i = 0; i < data_size; i++){
+		testSignal.data[i] = i;
+	}
+	testSignal.dataSize = data_size;
+	testSignal.allToAllFlag = 1;
+	testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
+	bool res;
+	for (int i = 0; i < TX_DATA_QUEUE_SIZE - 1; i++){
+		testSignal.data[0] = 100+i;
+		res = sendTX_DATA_packet(&testSignal);
+		if (res){
+			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
+		}
+		else{
+			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
+		}
+	}
+}
 
 
 void appMain(){
@@ -51,7 +78,7 @@ void appMain(){
 	static P2PPacket p_reply;
 	p_reply.port = 0x00;
 
-	uint8_t my_id = get_self_id();
+	my_id = get_self_id();
 
 	DEBUG_PRINT("Initializing queues ...\n");
 	queueing_init();
@@ -73,51 +100,15 @@ void appMain(){
 	if (my_id == 0){
 		DEBUG_PRINT("Starting communication...\n");
 		startRadioCommunication();
-
-		DTRpacket  testSignal;
-		testSignal.message_type = DATA_FRAME;
-		testSignal.source_id = my_id;
-		testSignal.target_id = 1;
-		testSignal.data[0] = 66;
-		testSignal.dataSize = 1;
-		testSignal.allToAllFlag = 1;
-		testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
-
-		bool res = sendTX_DATA_packet(&testSignal);
-		if (res){
-			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
-		}
-		else{
-			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
-		}
-
-		testSignal.data[0] = 123;
-		res = sendTX_DATA_packet(&testSignal);
-		if (res){
-			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
-		}
-		else{
-			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
-		}
-
-		testSignal.data[0] = 1;
-		res = sendTX_DATA_packet(&testSignal);
-		if (res){
-			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
-		}
-		else{
-			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
-		}
-
+		loadTXPacketsForTesting();
 	}	
 
 	DTRpacket received_packet;
 	uint32_t start = T2M(xTaskGetTickCount());
 	while(1){
 		getRX_DATA_packet(&received_packet);
-		DEBUG_PRINT("Received packet from other peer: %d\n", received_packet.data[0]);
 		uint32_t dt = T2M(xTaskGetTickCount()) - start;
-		DEBUG_PRINT("Time elapsed: %.2f  msec\n", dt/1000.0);
-		
+		DEBUG_PRINT("Received data from %d : %d  --> Time elapsed: %lu msec\n",received_packet.source_id, received_packet.data[0],dt);
+		start = T2M(xTaskGetTickCount());
 	}
 }
