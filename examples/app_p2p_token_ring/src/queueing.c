@@ -63,6 +63,10 @@ void queueing_init(){
 
 }
 
+uint8_t getPacketsInRX_SRV_queue(){
+	return (uint8_t) uxQueueMessagesWaiting(RX_SRV_queue);
+}
+
 // ======================== checks ===========================
 bool isTX_DATAPacketAvailable(void) {
 	return uxQueueMessagesWaiting(TX_DATA_queue) > 0;

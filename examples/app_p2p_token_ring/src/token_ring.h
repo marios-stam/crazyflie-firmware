@@ -62,7 +62,7 @@
 #endif
 
 
-#define NETWORK_SIZE 2
+#define NETWORK_SIZE 4
 #define PROTOCOL_TIMEOUT_MS 4 * 1000.0f // ms 
 
 

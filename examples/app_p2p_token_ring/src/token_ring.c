@@ -268,7 +268,7 @@ void DTRInterruptHandler(void *param) {
 								tx_state = TX_DATA_FRAME;
 							}
 						} else {
-							DTR_DEBUG_PRINT("No TX DATA,fwding token to next\n");
+							DTR_DEBUG_PRINT("No TX DATA,forwarding token to next\n");
 							txPk = &servicePk;
 							txPk->message_type = TOKEN_FRAME;
 							tx_state = TX_TOKEN;
@@ -338,7 +338,14 @@ void DTRInterruptHandler(void *param) {
 					continue;
 				}
 
+			// TODO: There are cases that the packet received from queue
+			// is the same to the one that was previously received and already processed.
+			// Maybe when releasing the packet, also release the ones that are similar to it in the queue.
+
 			// DEBUG_PRINT("Packet Received cannot be processed\n");
+			// DEBUG_PRINT("State: %d\n", rx_state);
+			// DEBUG_PRINT("Packet type: %d\n", rxPk->message_type);
+
 			// resetProtocol(); //TODO: test if it makes sense
 		}
 	

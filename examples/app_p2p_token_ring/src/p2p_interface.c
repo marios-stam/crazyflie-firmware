@@ -54,14 +54,24 @@ void p2pcallbackHandler(P2PPacket *p){
 
 	memcpy(&incoming_DTR, &(p->data[0]), DTRpacket_size);
     
-    if (incoming_DTR.message_type == prev_received.message_type && 
-        incoming_DTR.target_id == prev_received.target_id &&
-        incoming_DTR.source_id == prev_received.source_id) {
+    bool same_packet_received =  incoming_DTR.message_type == prev_received.message_type && 
+                        incoming_DTR.target_id == prev_received.target_id &&
+                        incoming_DTR.source_id == prev_received.source_id;
+
+    // if there are packets in the queue and the new packet is the same as the previous one, ignore it
+    DTR_DEBUG_PRINT("Packets in RX_SRV queue: %d\n", getPacketsInRX_SRV_queue() );
+    if ( getPacketsInRX_SRV_queue()!=0 && same_packet_received ) {
         DTR_DEBUG_PRINT("Duplicate packet received\n");
-        // return;
+        DTR_DEBUG_PRINT("Message type: %d\n", incoming_DTR.message_type);
+        DTR_DEBUG_PRINT("Target id: %d\n", incoming_DTR.target_id);
+
+        return;
     }
 
-    prev_received = incoming_DTR;
+    prev_received.message_type = incoming_DTR.message_type;
+    prev_received.target_id = incoming_DTR.target_id;
+    prev_received.source_id = incoming_DTR.source_id;
+
     sendRX_SRV_packet(&incoming_DTR);
 }
 

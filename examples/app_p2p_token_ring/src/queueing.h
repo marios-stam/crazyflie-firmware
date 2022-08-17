@@ -109,5 +109,6 @@ void emptyRX_SRV_queue(void);
 void emptyQueues(void);
 //==========================================================
 
+uint8_t getPacketsInRX_SRV_queue();
 
 #endif /* _QUEUEING_H_ */
