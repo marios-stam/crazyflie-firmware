@@ -57,7 +57,7 @@ void p2pcallbackHandler(P2PPacket *p){
     if (incoming_DTR.message_type == prev_received.message_type && 
         incoming_DTR.target_id == prev_received.target_id &&
         incoming_DTR.source_id == prev_received.source_id) {
-        // DEBUG_PRINT("Duplicate packet received\n");
+        DTR_DEBUG_PRINT("Duplicate packet received\n");
         // return;
     }
 

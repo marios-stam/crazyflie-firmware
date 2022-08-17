@@ -69,24 +69,12 @@ void initDTRSenderTimer(void) {
 }
 
 
-// void setDTRSenderTimer(unsigned int time_out) {
-	
-// 	if(time_out == MAX_WAIT_TIME_FOR_RTS ){
-// 		strcpy(type_to_spam, "RTS");
-// 	}else if (time_out == MAX_WAIT_TIME_FOR_CTS ){
-// 		strcpy(type_to_spam, "CTS");
-// 	}else if (time_out == MAX_WAIT_TIME_FOR_DATA_ACK ){
-// 		strcpy(type_to_spam, "DATA");
-// 	}
-
-// 	xTimerChangePeriod(sender_timer, M2T(time_out), 0);
-// }
 
 
 void shutdownDTRSenderTimer(void) {
 	if (xTimerIsTimerActive(sender_timer)==pdTRUE) {
 		xTimerStop(sender_timer, 0);
-		// DEBUG_PRINT("Stopped spamming messages\n");
+		DTR_DEBUG_PRINT("Stopped spamming messages\n");
 		sender_timer_running = false;
 	}else{
 		DEBUG_PRINT("Radio timer not running\n");
@@ -105,9 +93,12 @@ void startDTRSenderTimer(unsigned int time_out) {
 	}
 
 	if (sender_timer_running){
-		DEBUG_PRINT("Radio timer already running\n");
+		DTR_DEBUG_PRINT("Radio timer already running\n");
 	}else{
-		// DEBUG_PRINT("Started spamming %s\n", type_to_spam);
+		#ifdef DEBUG_DTR_PROTOCOL
+		DTR_DEBUG_PRINT("Started spamming %s\n", type_to_spam);
+		#endif
+
 		xTimerStart(sender_timer, 20);
 		// xTimerChangePeriod(sender_timer, M2T(time_out), 0);
 

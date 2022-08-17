@@ -142,7 +142,7 @@ bool sendRX_SRV_packet(DTRpacket *packet) {
 
 // ======================= releasers =======================
 bool releaseTX_DATA_packet() {
-	// DEBUG_PRINT("Releasing TX DATA Packet...\n");
+	// DTR_DEBUG_PRINT("Releasing TX DATA Packet...\n");
 
 	DTRpacket packet;
 	return xQueueReceive(TX_DATA_queue, &packet, M2T(TX_RECEIVED_WAIT_TIME)) == pdTRUE;

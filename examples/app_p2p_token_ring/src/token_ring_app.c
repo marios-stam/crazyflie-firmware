@@ -63,7 +63,7 @@ void loadTXPacketsForTesting(void){
 		testSignal.data[0] = 100+i;
 		res = sendTX_DATA_packet(&testSignal);
 		if (res){
-			DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
+			DTR_DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
 		}
 		else{
 			DEBUG_PRINT("Packet not sent to TX_DATA Q\n");
@@ -74,16 +74,16 @@ void loadTXPacketsForTesting(void){
 static void DTRProtocolInitialization(void){
 	my_id = get_self_id();
 
-	DEBUG_PRINT("Initializing queues ...\n");
+	DTR_DEBUG_PRINT("Initializing queues ...\n");
 	queueing_init();
 
-	DEBUG_PRINT("Initializing token ring ...\n");
+	DTR_DEBUG_PRINT("Initializing token ring ...\n");
 	initTokenRing(NETWORK_SIZE, my_id);
 	
-	DEBUG_PRINT("Initializing timers ...\n");
+	DTR_DEBUG_PRINT("Initializing timers ...\n");
 	initTimers();
 
-	DEBUG_PRINT("Starting protocol timer ...\n");
+	DTR_DEBUG_PRINT("Starting protocol timer ...\n");
 	startDTRProtocol();
 }
 
@@ -96,7 +96,7 @@ void appMain(){
 	p2pRegisterCB(p2pcallbackHandler);
 
 	if (my_id == 0){
-		DEBUG_PRINT("Starting communication...\n");
+		DTR_DEBUG_PRINT("Starting communication...\n");
 		startRadioCommunication();
 		loadTXPacketsForTesting();
 	}

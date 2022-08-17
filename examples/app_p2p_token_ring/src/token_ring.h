@@ -49,13 +49,22 @@
 #include "p2p_interface.h"
 #include "queueing.h"
 
-#define NETWORK_SIZE 4
+// #define UNUSED(...) ((void)sizeof((_Bool[]){__VA_ARGS__})); //Used to silence compiler warnings about unused parameters
+#define UNUSED(...) ; //Used to silence compiler warnings about unused parameters
+
+// #define DEBUG_DTR_PROTOCOL // Enable debug prints for the DTR protocol
+
+#ifdef DEBUG_DTR_PROTOCOL
+    #define DTR_DEBUG_PRINT(fmt, ... ) DEBUG_PRINT(DEBUG_FMT(fmt), ##__VA_ARGS__)
+#else
+    //do nothing
+    #define DTR_DEBUG_PRINT( fmt,   ... ) (void) (fmt) 
+#endif
+
+
+#define NETWORK_SIZE 2
 #define PROTOCOL_TIMEOUT_MS 4 * 1000.0f // ms 
 
-#define RADIO_BROADCAST_ADDRESS 0xFF
-#define RADIO_NRF51_BOARD_ADDRESS 0x00
-
-#define RADIO_DEFAULT_DEVICE_ADDRESS 0x01
 
 void initRadio(uint8_t networkSize, uint8_t device_id);
 

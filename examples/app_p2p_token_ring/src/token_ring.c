@@ -89,7 +89,7 @@ void initTokenRing(uint8_t networkSize, uint8_t device_id) {
 static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 
 	tx_state = txState;
-	// DEBUG_PRINT("Setting up radio tx with state: %s \n", getTXState(tx_state));
+	DTR_DEBUG_PRINT("Setting up radio tx with state: %s \n", getTXState(tx_state));
 
 	switch (tx_state) {
 
@@ -144,13 +144,8 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 
 }
 
-// static bool isProtocolTimedOut(void) {
-// 	uint32_t now_ms = T2M(xTaskGetTickCount());
-// 	return (now_ms - protocol_timeout_ms) > PROTOCOL_TIMEOUT_MS;
-// }
-
 static void resetProtocol(void){
-	DEBUG_PRINT("\nResetting protocol\n");
+	DTR_DEBUG_PRINT("\nResetting protocol\n");
 	rx_state = RX_IDLE;
 	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
 	emptyQueues();
@@ -171,7 +166,7 @@ void DTRInterruptHandler(void *param) {
 
 	while ( receiveRX_SRV_packet_wait_until(&_rxPk, PROTOCOL_TIMEOUT_MS,&new_packet_received) ){
 			if (!new_packet_received) {
-				DEBUG_PRINT("\nPROTOCOL TIMEOUT!\n");
+				DTR_DEBUG_PRINT("\nPROTOCOL TIMEOUT!\n");
 				if (my_id != 0){
 					resetProtocol();
 				}
@@ -183,12 +178,12 @@ void DTRInterruptHandler(void *param) {
 			
 			radioMetaInfo.receivedPackets++;
 
-			// DEBUG_PRINT("===============================================================\n");
-			// DEBUG_PRINT("=\n");
-			// DEBUG_PRINT("TX_DATA Q Empty: %d\n", !isTX_DATAPacketAvailable());
+			DTR_DEBUG_PRINT("===============================================================\n");
+			DTR_DEBUG_PRINT("=\n");
+			DTR_DEBUG_PRINT("TX_DATA Q Empty: %d\n", !isTX_DATAPacketAvailable());
 
 
-			// DEBUG_PRINT("rx_state: %s\n", getRXState(rx_state));
+			DTR_DEBUG_PRINT("rx_state: %s\n", getRXState(rx_state));
 			
 			// printDTRPacket(rxPk);
 
@@ -198,7 +193,7 @@ void DTRInterruptHandler(void *param) {
 					/* if packet is DATA packet and received from previous node,
 					* then it can be handled. */
 					if (rxPk->message_type == DATA_FRAME && rxPk->target_id == node_id) {
-						// DEBUG_PRINT("\nReceived DATA packet from prev\n");
+						DTR_DEBUG_PRINT("\nReceived DATA packet from prev\n");
 						if (rxPk->source_id != last_packet_source_id) {
 							last_packet_source_id = rxPk->source_id;
 							/* if packet is relevant and receiver queue is not full, then
@@ -209,8 +204,8 @@ void DTRInterruptHandler(void *param) {
 							}
 						}
 							/* Acknowledge the data */
-							// DEBUG_PRINT("Received DATA %d\n", rxPk->data[0]);
-							// DEBUG_PRINT("\nSending ACK packet\n");
+							DTR_DEBUG_PRINT("Received DATA %d\n", rxPk->data[0]);
+							DTR_DEBUG_PRINT("\nSending ACK packet\n");
 							servicePk.message_type = DATA_ACK_FRAME;
 							servicePk.target_id = rxPk->source_id;
 							setupRadioTx(&servicePk, TX_DATA_ACK);
@@ -220,7 +215,7 @@ void DTRInterruptHandler(void *param) {
 					/* if packet is TOKEN packet and received from previous node, then
 					* send a TOKEN_ACK packet and prepare the packet for the timer. */
 					if (rxPk->message_type == TOKEN_FRAME && rxPk->source_id == prev_node_id) {
-						// DEBUG_PRINT("\nReceived TOKEN from prev\n");
+						DTR_DEBUG_PRINT("\nReceived TOKEN from prev\n");
 						servicePk.message_type = RTS_FRAME;
 						setupRadioTx(&servicePk, TX_RTS);
 						continue;
@@ -229,13 +224,13 @@ void DTRInterruptHandler(void *param) {
 					/* if packet is RTS packet and received from next node, then send
 					* a CTS packet to next node. */
 					if (rxPk->message_type == RTS_FRAME && rxPk->source_id == next_node_id) {
-						// DEBUG_PRINT("\nReceived RTS from next -> CTS to next\n");
+						DTR_DEBUG_PRINT("\nReceived RTS from next -> CTS to next\n");
 						servicePk.message_type = CTS_FRAME;
 						setupRadioTx(&servicePk, TX_CTS);
 						continue;
 					}
 					
-					// DEBUG_PRINT("\nRECEIVED PACKET NOT HANDLED\n");
+					DTR_DEBUG_PRINT("\nRECEIVED PACKET NOT HANDLED\n");
 					/* drop all other packets and restart receiver */
 					break;
 
@@ -246,22 +241,21 @@ void DTRInterruptHandler(void *param) {
 					if (rxPk->message_type == CTS_FRAME && rxPk->source_id == prev_node_id) {
 						shutdownDTRSenderTimer();
 						last_packet_source_id = node_id;
-						// DEBUG_PRINT("\nRcvd CTS from prev,send DATA to next\n");
+						DTR_DEBUG_PRINT("\nRcvd CTS from prev,send DATA to next\n");
 						/* check if there is a DATA packet. If yes, prepare it and
 						 * send it, otherwise forward the token to the next node. */
 						
 						DTRpacket _txPk;//TODO: bad implementation, should be fixed
 						if (getTX_DATA_packet(&_txPk)) {
 							txPk = &_txPk;
-							DEBUG_PRINT("TX DATA Packet exists (%d), sending it\n",txPk->data[0]);
+							DTR_DEBUG_PRINT("TX DATA Packet exists (%d), sending it\n",txPk->data[0]);
 							if(txPk->allToAllFlag) {
 								txPk->target_id = next_node_id;
 							}
 							if (txPk->target_id >= MAX_NETWORK_SIZE) {
-								DEBUG_PRINT("Releasing TX DATA Packet because target > default:\n");
-								printDTRPacket(txPk);
+								DTR_DEBUG_PRINT("Releasing TX DATA Packet because target > default:\n");
 
-								DEBUG_PRINT("Is Queue Empty: %d\n", !isTX_DATAPacketAvailable());
+								DTR_DEBUG_PRINT("Is Queue Empty: %d\n", !isTX_DATAPacketAvailable());
 								
 								releaseTX_DATA_packet();
 								txPk = &servicePk;
@@ -274,7 +268,7 @@ void DTRInterruptHandler(void *param) {
 								tx_state = TX_DATA_FRAME;
 							}
 						} else {
-							// DEBUG_PRINT("No TX DATA,fwding token to next\n");
+							DTR_DEBUG_PRINT("No TX DATA,fwding token to next\n");
 							txPk = &servicePk;
 							txPk->message_type = TOKEN_FRAME;
 							tx_state = TX_TOKEN;
@@ -292,10 +286,8 @@ void DTRInterruptHandler(void *param) {
 					/* if packet is TOKEN_ACK and received from next node, then
 					 * a CTS packet can be sent. */
 					if (rxPk->message_type == RTS_FRAME && rxPk->source_id == next_node_id) {
-						// DEBUG_PRINT("\nReceived TOKEN_ACK from next->sending CTS \n");
+						DTR_DEBUG_PRINT("\nReceived TOKEN_ACK from next->sending CTS \n");
 						shutdownDTRSenderTimer();
-						// NVIC_ClearPendingIRQ(TIMER0_IRQn);
-						// NVIC_ClearPendingIRQ(RADIO_IRQn);
 						servicePk.message_type = CTS_FRAME;
 						setupRadioTx(&servicePk, TX_CTS);
 						continue;
@@ -314,13 +306,13 @@ void DTRInterruptHandler(void *param) {
 						txPk = &_txPk;
 						
 						next_target_id = (txPk->target_id + send_data_to_peer_counter + 1) % MAX_NETWORK_SIZE;
-						DEBUG_PRINT("next_target_id: %d\n", next_target_id);
+						DTR_DEBUG_PRINT("next_target_id: %d\n", next_target_id);
 
 						if (!txPk->allToAllFlag || next_target_id == node_id) {
-							// DEBUG_PRINT("Releasing TX DATA:\n");
-							printDTRPacket(txPk);
+							DTR_DEBUG_PRINT("Releasing TX DATA:\n");
+							// printDTRPacket(txPk);
 
-							// DEBUG_PRINT("Is Q Empty: %d\n", !isTX_DATAPacketAvailable());
+							DTR_DEBUG_PRINT("Is Q Empty: %d\n", !isTX_DATAPacketAvailable());
 
 							releaseTX_DATA_packet();
 							txPk = &servicePk;
@@ -330,8 +322,8 @@ void DTRInterruptHandler(void *param) {
 						} else {								
 							txPk->target_id = next_target_id;
 							send_data_to_peer_counter++;
-							DEBUG_PRINT("Sending DATA to next peer..");
-							DEBUG_PRINT("with target id: %d\n", txPk->target_id);
+							DTR_DEBUG_PRINT("Sending DATA to next peer..");
+							DTR_DEBUG_PRINT("with target id: %d\n", txPk->target_id);
 							tx_state = TX_DATA_FRAME;
 						}
 						setupRadioTx(txPk, tx_state);
@@ -347,9 +339,7 @@ void DTRInterruptHandler(void *param) {
 				}
 
 			// DEBUG_PRINT("Packet Received cannot be processed\n");
-			// DEBUG_PRINT("RESETTING PROTCOL\n");
-
-			// resetProtocol();
+			// resetProtocol(); //TODO: test if it makes sense
 		}
 	
 }
@@ -363,14 +353,16 @@ uint8_t getDeviceRadioAddress() {
 }
 
 void timeOutCallBack(xTimerHandle timer) {
-	// DEBUG_PRINT("Sending packet after timeout: %s",getMessageType(timerDTRpacket->message_type));
-	// if (timerDTRpacket->message_type == DATA_FRAME) {
-	// 	for (size_t i = 0; i <timerDTRpacket->dataSize; i++)
-	// 	{
-	// 		DEBUG_PRINT(" %d ",timerDTRpacket->data[i]);
-	// 	}
-	// }
-	// DEBUG_PRINT("\n");
+	#ifdef DEBUG_DTR
+	DTR_DEBUG_PRINT("Sending packet after timeout: %s",getMessageType(timerDTRpacket->message_type));
+	if (timerDTRpacket->message_type == DATA_FRAME) {
+		for (size_t i = 0; i <timerDTRpacket->dataSize; i++)
+		{
+			DTR_DEBUG_PRINT(" %d ",timerDTRpacket->data[i]);
+		}
+	}
+	DTR_DEBUG_PRINT("\n");
+	#endif
 
 	sendDTRpacket(timerDTRpacket);
 	radioMetaInfo.sendPackets++;
@@ -416,7 +408,7 @@ void startRadioCommunication() {
 	timerRadioTxState = TX_DATA_FRAME;
 	radioMode = RX_MODE;
 	rx_state = RX_WAIT_DATA_ACK;
-	DEBUG_PRINT("Spamming DATA\n");
+	DTR_DEBUG_PRINT("Spamming DATA\n");
 	startDTRSenderTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
 }
 
@@ -471,12 +463,12 @@ const char* getTXState(uint8_t tx_state){
 } 
 
 void printDTRPacket(DTRpacket* packet){
-	// DEBUG_PRINT("\nDTR Packet Received: %s\n", getMessageType(packet->message_type));
-	// DEBUG_PRINT("Packet Size: %d\n", packet->packetSize);
-	// DEBUG_PRINT("Message Type: %s\n", getMessageType(packet->message_type));
-	// DEBUG_PRINT("Source ID: %d\n", packet->source_id);
-	// DEBUG_PRINT("Target ID: %d\n", packet->target_id);
-	// DEBUG_PRINT("AllToAll Flag: %d\n", packet->allToAllFlag);
+	DTR_DEBUG_PRINT("\nDTR Packet Received: %s\n", getMessageType(packet->message_type));
+	DTR_DEBUG_PRINT("Packet Size: %d\n", packet->packetSize);
+	DTR_DEBUG_PRINT("Message Type: %s\n", getMessageType(packet->message_type));
+	DTR_DEBUG_PRINT("Source ID: %d\n", packet->source_id);
+	DTR_DEBUG_PRINT("Target ID: %d\n", packet->target_id);
+	DTR_DEBUG_PRINT("AllToAll Flag: %d\n", packet->allToAllFlag);
 	if (packet->dataSize > 0) {
 		DEBUG_PRINT("Data: ");
 		for (int i = 0; i < packet->dataSize; i++) {
@@ -485,7 +477,7 @@ void printDTRPacket(DTRpacket* packet){
 		DEBUG_PRINT("\n");
 	}
 
-	DEBUG_PRINT("\n\n");
+	DTR_DEBUG_PRINT("\n\n");
 }
 
 uint8_t get_self_id(void){
