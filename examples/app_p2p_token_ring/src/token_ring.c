@@ -53,7 +53,6 @@ static DTRpacket servicePk = {
 	.packetSize = DTR_PACKET_HEADER_SIZE,
 	.allToAllFlag = false,
 };
-static RadioModes radioMode;
 static TxStates tx_state, timerRadioTxState;
 static RxStates rx_state;
 
@@ -78,11 +77,6 @@ void initTokenRing(uint8_t networkSize, uint8_t device_id) {
 	/* Network node configuration*/
 	setNodeIds(networkSize, device_id);
 
-	/* Interrupt Configuration */
-	// NVIC_SetPriority(RADIO_IRQn, 2);
-	// NVIC_EnableIRQ(RADIO_IRQn);
-
-	radioMode = RX_MODE;
 	rx_state = RX_IDLE;
 }
 
@@ -138,7 +132,6 @@ static void setupRadioTx(DTRpacket* packet, TxStates txState) {
 			return;
 	}
 	sendDTRpacket(packet);
-	// radioMode = TX_MODE;
 	radioMetaInfo.sendPackets++;
 
 
@@ -374,8 +367,6 @@ void timeOutCallBack(xTimerHandle timer) {
 	sendDTRpacket(timerDTRpacket);
 	radioMetaInfo.sendPackets++;
 
-	// radioMode = TX_MODE;
-
 	switch(tx_state) {
 		case TX_RTS:
 			radioMetaInfo.timeOutRTS++;
@@ -410,10 +401,8 @@ void startRadioCommunication() {
 	startSignal->packetSize = DTR_PACKET_HEADER_SIZE + startSignal->dataSize;
 
 	timerDTRpacket = startSignal;
-	// setDTRSenderTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
-	// incrementTxQueueWritePos();
+
 	timerRadioTxState = TX_DATA_FRAME;
-	radioMode = RX_MODE;
 	rx_state = RX_WAIT_DATA_ACK;
 	DTR_DEBUG_PRINT("Spamming DATA\n");
 	startDTRSenderTimer(MAX_WAIT_TIME_FOR_DATA_ACK);

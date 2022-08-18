@@ -47,13 +47,6 @@
 
 #define MAXIMUM_DTR_PACKET_DATA_SIZE P2P_MAX_USABLE_DATA_SIZE - DTR_PACKET_HEADER_SIZE
 
-
-typedef enum radio_modes_e {
-	RX_MODE,
-	TX_MODE
-} RadioModes;
-
-
 typedef enum tx_states_e {
 	TX_TOKEN,
 	TX_CTS,
@@ -92,7 +85,6 @@ enum message_types {
 // |--------------------|
 // | 	  data 			|	(dataSize B)
 // |--------------------|
-
 typedef struct radio_packet {
 	uint8_t packetSize;
 	uint8_t message_type;
