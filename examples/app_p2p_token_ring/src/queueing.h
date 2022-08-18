@@ -50,65 +50,31 @@
 #define TX_RECEIVED_WAIT_TIME 5// ms
 #define RX_RECEIVED_WAIT_TIME 5// ms
 
+typedef enum queue_names_e {
+    TX_DATA_Q,
+	RX_SRV_Q,
+	RX_DATA_Q,
+} DTRQueue_Names;
+
 void queueing_init();
 
 
-//======================= checks ===========================
-bool isTX_DATAPacketAvailable(void);
-bool isRX_SRVPacketAvailable(void);
-bool isRX_DATAPacketAvailable(void);
+bool isPacketInQueueAvailable(DTRQueue_Names qName);
 
-//==========================================================
-// getters
+uint8_t getNumberOfPacketsInQueue(DTRQueue_Names qName);
 
-// read DATA to be send to others
-bool getTX_DATA_packet(DTRpacket *packet);
-
-// read DATA user has received
-bool  getRX_DATA_packet(DTRpacket *packet);
-
-// read packet received from the radio
-bool getRX_SRV_packet(DTRpacket *packet);
+bool getPacketFromQueue(DTRpacket *packet, DTRQueue_Names qName, uint32_t timeout);
 
 // Blocks to wait for a packet to be received for a given time
 // new_packet_received --> True if a new packet has been received and False if the timeout has been reached
-bool receiveRX_SRV_packet_wait_until(DTRpacket* packet, uint32_t timeout_ms, bool *new_packet_received);
+bool receivePacketWaitUntil(DTRpacket *packet, DTRQueue_Names qName, uint32_t timeout_ms, bool *new_packet_received);
 
-//==========================================================
-// senders
+bool insertPacketToQueue(DTRpacket *packet, DTRQueue_Names qName);
 
-// send DATA to be send to others
-bool sendTX_DATA_packet(DTRpacket *packet);
+bool releasePacketFromQueue(DTRQueue_Names qName);
 
-// send DATA user has received
-bool sendRX_DATA_packet(DTRpacket *packet);
-
-// send packet received from the radio
-bool sendRX_SRV_packet(DTRpacket *packet);
-//==========================================================
-//releasers
-
-// release packet from DATA to be send to others
-bool releaseTX_DATA_packet();
-
-// release packet from DATA user has received
-bool releaseRX_DATA_packet();
-
-// release packet from the radio
-bool releaseRX_SRV_packet();
-
-//==========================================================
-// emptiers
-
-void emptyTX_DATA_queue(void);
-
-void emptyRX_DATA_queue(void);
-
-void emptyRX_SRV_queue(void);
+void emptyQueue(DTRQueue_Names qName);
 
 void emptyQueues(void);
-//==========================================================
-
-uint8_t getPacketsInRX_SRV_queue();
 
 #endif /* _QUEUEING_H_ */

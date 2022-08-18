@@ -6,7 +6,7 @@ def reset_cf(uri):
     try:
         pwr_switch = PowerSwitch(uri)
         pwr_switch.stm_power_cycle()
-        time.sleep(1)
+        time.sleep(0.2)
         pwr_switch.close()
         print(Fore.GREEN + 'Successfully reset {}'.format(uri))
     except Exception as e:

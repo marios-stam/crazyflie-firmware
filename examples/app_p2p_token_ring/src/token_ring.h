@@ -52,7 +52,7 @@
 // #define UNUSED(...) ((void)sizeof((_Bool[]){__VA_ARGS__})); //Used to silence compiler warnings about unused parameters
 #define UNUSED(...) ; //Used to silence compiler warnings about unused parameters
 
-// #define DEBUG_DTR_PROTOCOL // Enable debug prints for the DTR protocol
+// #define DEBUG_DTR_PROTOCOL // Enable debug prints for the DTR protocol (WARNING: May cause problems )
 
 #ifdef DEBUG_DTR_PROTOCOL
     #define DTR_DEBUG_PRINT(fmt, ... ) DEBUG_PRINT(DEBUG_FMT(fmt), ##__VA_ARGS__)

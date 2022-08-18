@@ -59,8 +59,8 @@ void p2pcallbackHandler(P2PPacket *p){
                         incoming_DTR.source_id == prev_received.source_id;
 
     // if there are packets in the queue and the new packet is the same as the previous one, ignore it
-    DTR_DEBUG_PRINT("Packets in RX_SRV queue: %d\n", getPacketsInRX_SRV_queue() );
-    if ( getPacketsInRX_SRV_queue()!=0 && same_packet_received ) {
+    DTR_DEBUG_PRINT("Packets in RX_SRV queue: %d\n", getNumberOfPacketsInQueue(RX_SRV_Q) );
+    if ( getNumberOfPacketsInQueue(RX_SRV_Q) !=0 && same_packet_received ) {
         DTR_DEBUG_PRINT("Duplicate packet received\n");
         DTR_DEBUG_PRINT("Message type: %d\n", incoming_DTR.message_type);
         DTR_DEBUG_PRINT("Target id: %d\n", incoming_DTR.target_id);
@@ -72,7 +72,7 @@ void p2pcallbackHandler(P2PPacket *p){
     prev_received.target_id = incoming_DTR.target_id;
     prev_received.source_id = incoming_DTR.source_id;
 
-    sendRX_SRV_packet(&incoming_DTR);
+    insertPacketToQueue(&incoming_DTR, RX_SRV_Q);
 }
 
 

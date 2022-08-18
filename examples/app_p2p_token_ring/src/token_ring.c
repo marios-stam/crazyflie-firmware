@@ -164,7 +164,7 @@ void DTRInterruptHandler(void *param) {
 	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
 	bool new_packet_received;
 
-	while ( receiveRX_SRV_packet_wait_until(&_rxPk, PROTOCOL_TIMEOUT_MS,&new_packet_received) ){
+	while ( receivePacketWaitUntil(&_rxPk, 	RX_SRV_Q, PROTOCOL_TIMEOUT_MS, &new_packet_received) ){
 			if (!new_packet_received) {
 				DTR_DEBUG_PRINT("\nPROTOCOL TIMEOUT!\n");
 				if (my_id != 0){
@@ -180,7 +180,7 @@ void DTRInterruptHandler(void *param) {
 
 			DTR_DEBUG_PRINT("===============================================================\n");
 			DTR_DEBUG_PRINT("=\n");
-			DTR_DEBUG_PRINT("TX_DATA Q Empty: %d\n", !isTX_DATAPacketAvailable());
+			DTR_DEBUG_PRINT("TX_DATA Q Empty: %d\n", !isPacketInQueueAvailable(TX_DATA_Q));
 
 
 			DTR_DEBUG_PRINT("rx_state: %s\n", getRXState(rx_state));
@@ -198,7 +198,7 @@ void DTRInterruptHandler(void *param) {
 							last_packet_source_id = rxPk->source_id;
 							/* if packet is relevant and receiver queue is not full, then
 							* push packet in the queue and prepare queue for next packet. */
-							bool queueFull = sendRX_DATA_packet(rxPk);
+							bool queueFull = insertPacketToQueue(rxPk, RX_DATA_Q);
 							if (queueFull){
 								radioMetaInfo.failedRxQueueFull++;
 							}
@@ -246,7 +246,7 @@ void DTRInterruptHandler(void *param) {
 						 * send it, otherwise forward the token to the next node. */
 						
 						DTRpacket _txPk;//TODO: bad implementation, should be fixed
-						if (getTX_DATA_packet(&_txPk)) {
+						if (getPacketFromQueue(&_txPk, TX_DATA_Q, M2T(TX_RECEIVED_WAIT_TIME))) {
 							txPk = &_txPk;
 							DTR_DEBUG_PRINT("TX DATA Packet exists (%d), sending it\n",txPk->data[0]);
 							if(txPk->allToAllFlag) {
@@ -255,9 +255,9 @@ void DTRInterruptHandler(void *param) {
 							if (txPk->target_id >= MAX_NETWORK_SIZE) {
 								DTR_DEBUG_PRINT("Releasing TX DATA Packet because target > default:\n");
 
-								DTR_DEBUG_PRINT("Is Queue Empty: %d\n", !isTX_DATAPacketAvailable());
+								DTR_DEBUG_PRINT("Is Queue Empty: %d\n", !isPacketInQueueAvailable(TX_DATA_Q));
 								
-								releaseTX_DATA_packet();
+								releasePacketFromQueue(TX_DATA_Q);
 								txPk = &servicePk;
 								txPk->message_type = TOKEN_FRAME;
 								tx_state = TX_TOKEN;
@@ -302,7 +302,7 @@ void DTRInterruptHandler(void *param) {
 
 						//TODO: bad implementation, should be fixed
 						DTRpacket _txPk;
-						getTX_DATA_packet(&_txPk);
+						getPacketFromQueue(&_txPk, TX_DATA_Q, M2T(TX_RECEIVED_WAIT_TIME));
 						txPk = &_txPk;
 						
 						next_target_id = (txPk->target_id + send_data_to_peer_counter + 1) % MAX_NETWORK_SIZE;
@@ -312,9 +312,9 @@ void DTRInterruptHandler(void *param) {
 							DTR_DEBUG_PRINT("Releasing TX DATA:\n");
 							// printDTRPacket(txPk);
 
-							DTR_DEBUG_PRINT("Is Q Empty: %d\n", !isTX_DATAPacketAvailable());
+							DTR_DEBUG_PRINT("Is Q Empty: %d\n", !isPacketInQueueAvailable(TX_DATA_Q));
 
-							releaseTX_DATA_packet();
+							releasePacketFromQueue(TX_DATA_Q);
 							txPk = &servicePk;
 							txPk->message_type = TOKEN_FRAME;
 							tx_state = TX_TOKEN;

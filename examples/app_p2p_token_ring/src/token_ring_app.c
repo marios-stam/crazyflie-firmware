@@ -61,7 +61,7 @@ void loadTXPacketsForTesting(void){
 	bool res;
 	for (int i = 0; i < TX_DATA_QUEUE_SIZE - 1; i++){
 		testSignal.data[0] = 100+i;
-		res = sendTX_DATA_packet(&testSignal);
+		res = insertPacketToQueue(&testSignal,TX_DATA_Q);
 		if (res){
 			DTR_DEBUG_PRINT("TX Packet sent to TX_DATA Q\n");
 		}
@@ -104,7 +104,7 @@ void appMain(){
 	DTRpacket received_packet;
 	uint32_t start = T2M(xTaskGetTickCount());
 	while(1){
-		getRX_DATA_packet(&received_packet);
+		getPacketFromQueue(&received_packet, RX_DATA_Q, portMAX_DELAY);
 		uint32_t dt = T2M(xTaskGetTickCount()) - start;
 		DEBUG_PRINT("Received data from %d : %d  --> Time elapsed: %lu msec\n",received_packet.source_id, received_packet.data[0],dt);
 		start = T2M(xTaskGetTickCount());
@@ -113,7 +113,7 @@ void appMain(){
 			received_packet.source_id = my_id;
 			received_packet.data[0] = 123;
 			DEBUG_PRINT("Sending response...\n");
-			sendTX_DATA_packet(&received_packet);
+			insertPacketToQueue(&received_packet,TX_DATA_Q);
 		}
 	}
 }
