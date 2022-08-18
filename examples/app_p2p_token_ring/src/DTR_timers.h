@@ -41,9 +41,9 @@
 #include "token_ring.h"
 #include "timers.h"
 
-#define MAX_WAIT_TIME_FOR_RTS      10 // 2.5ms
-#define MAX_WAIT_TIME_FOR_CTS      11 // 2.5ms
-#define MAX_WAIT_TIME_FOR_DATA_ACK 12 // 2.5ms
+#define MAX_WAIT_TIME_FOR_RTS      10 // ms
+#define MAX_WAIT_TIME_FOR_CTS      11 // ms
+#define MAX_WAIT_TIME_FOR_DATA_ACK 12 // ms
 
 #define DTR_PROTOCOL_PERIOD 5 // ms (random value)
 
@@ -52,18 +52,11 @@
 #define DTR_PROTOCOL_TASK_STACK_SIZE 2 * configMINIMAL_STACK_SIZE
 #define DTR_PROTOCOL_TASK_PRIORITY 1 //Higher number higher priority
 
-void initTimers(void);
-
-// =============== DTR protocol timer ===============
-void initDTRProtocolTimer(void);
-
+// DTR protocol Task
 void startDTRProtocol(void);
-
 
 // ================ DTR sender timer ==================
 void initDTRSenderTimer(void);
-
-// void setDTRSenderTimer(unsigned int time_out);
 
 void shutdownDTRSenderTimer(void);
 

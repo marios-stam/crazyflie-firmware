@@ -80,8 +80,8 @@ static void DTRProtocolInitialization(void){
 	DTR_DEBUG_PRINT("Initializing token ring ...\n");
 	initTokenRing(NETWORK_SIZE, my_id);
 	
-	DTR_DEBUG_PRINT("Initializing timers ...\n");
-	initTimers();
+	DTR_DEBUG_PRINT("Initializing DTR Sender ...\n");
+	initDTRSenderTimer();
 
 	DTR_DEBUG_PRINT("Starting protocol timer ...\n");
 	startDTRProtocol();

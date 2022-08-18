@@ -112,7 +112,6 @@ bool getPacketFromQueue(DTRpacket *packet, DTRQueue_Names qName, uint32_t timeou
 	return received_success;
 }
 
-
 bool receivePacketWaitUntil(DTRpacket *packet, DTRQueue_Names qName, uint32_t timeout_ms, bool *new_packet_received){
 	*new_packet_received = xQueueReceive(*getQueueHandler(qName), packet, M2T(timeout_ms)) == pdTRUE;
 	return true;
@@ -135,7 +134,6 @@ bool releasePacketFromQueue(DTRQueue_Names qName) {
 void emptyQueue(DTRQueue_Names qName) {
 	xQueueReset(*getQueueHandler(qName));
 }
-
 
 void emptyQueues(void){
 	emptyQueue(TX_DATA_Q);

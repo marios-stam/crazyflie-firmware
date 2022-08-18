@@ -41,35 +41,13 @@ static bool sender_timer_running = false;
 
 static char type_to_spam[15];
 
-void initTimers(void) {
-	initDTRProtocolTimer();
-	initDTRSenderTimer();
-}
-
-
-// =============== DTR protocol timer ===============
-
-void initDTRProtocolTimer(void){
-	// protocol_timer = xTimerCreate("DTRProtTimer", M2T(DTR_PROTOCOL_PERIOD), pdTRUE, NULL, DTRInterruptHandler);
-}
-
-
 void startDTRProtocol(void){
-	// xTimerStart(protocol_timer, 20);
-	// xTaskCreate(task, "activeMarkerDeck",configMINIMAL_STACK_SIZE, NULL, 3, NULL);
-
 	xTaskCreate(DTRInterruptHandler, "DTR_P2P", DTR_PROTOCOL_TASK_STACK_SIZE, NULL,DTR_PROTOCOL_TASK_PRIORITY, NULL);
 }
-
-
-// ================ DTR sender timer ==================
 
 void initDTRSenderTimer(void) {
 	sender_timer = xTimerCreate("DTRSenderTimer", M2T(20), pdTRUE, NULL, timeOutCallBack);
 }
-
-
-
 
 void shutdownDTRSenderTimer(void) {
 	if (xTimerIsTimerActive(sender_timer)==pdTRUE) {

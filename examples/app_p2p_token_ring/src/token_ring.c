@@ -148,7 +148,7 @@ static void resetProtocol(void){
 	DTR_DEBUG_PRINT("\nResetting protocol\n");
 	rx_state = RX_IDLE;
 	protocol_timeout_ms = T2M(xTaskGetTickCount()) + PROTOCOL_TIMEOUT_MS;
-	emptyQueues();
+	emptyQueues(); // Maybe not all queues, but only the RX_SRV since the data are going to be lost saved in DATA queues 
 	shutdownDTRSenderTimer();
 	last_packet_source_id = 255;
 }
