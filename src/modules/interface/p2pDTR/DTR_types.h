@@ -68,6 +68,7 @@ enum message_types {
 	CTS_FRAME = 2,
 	RTS_FRAME = 3,
 	DATA_ACK_FRAME = 4,
+	TOPOLOGY_RECONFIG = 5,
 };
 
 // |--------------------|

@@ -33,7 +33,7 @@
 
 #include "token_ring.h"
 
-#define DEBUG_MODULE "TOK_RING"
+// #define DEBUG_MODULE "TOK_RING"
 #include "debug.h"
 
 
@@ -42,6 +42,8 @@ static uint8_t next_node_id = 0;
 static uint8_t prev_node_id = 0;
 static uint8_t next_target_id = 0;
 static uint8_t last_packet_source_id = 0;
+
+static uint8_t next_sender_id = 255;
 
 static DTRpacket* timerDTRpacket;
 
@@ -243,8 +245,157 @@ static void resetProtocol(void){
 	last_packet_source_id = 255;
 }
 
-// static uint8_t send_data_to_peer_counter = 0;
-static uint8_t next_sender_id = 255;
+static DTRpacket createReconfigurationPacket(void){
+	DTRpacket packet;
+	packet.message_type = TOPOLOGY_RECONFIG;
+	packet.source_id = node_id;
+	packet.allToAllFlag = true;	
+	packet.dataSize = networkTopology.size + 1;
+	packet.packetSize = packet.dataSize + DTR_PACKET_HEADER_SIZE;
+
+	packet.data[0] = networkTopology.size;  // 1st byte is the number of nodes in the topology
+	for (uint8_t i = 0; i < networkTopology.size; i++) {
+		packet.data[i+1] = networkTopology.devices_ids[i];
+	}
+
+	return packet;
+}
+
+static void printTopology(void){
+	DEBUG_PRINT("TOPOLOGY: ");
+	for (size_t i = 0; i < networkTopology.size; i++)
+	{
+		DEBUG_PRINT("%d ", networkTopology.devices_ids[i]);
+	}
+	DEBUG_PRINT("\n");
+}
+
+static void reconfigureTopology(uint8_t node_id_to_remove){
+	uint8_t index_to_remove = getIndexInTopology(node_id_to_remove);
+	DEBUG_PRINT("Index to remove: %d\n", index_to_remove);
+	if(index_to_remove == 255){
+		DTR_DEBUG_PRINT("\nNode to remove not found in topology\n");
+		return;
+	}
+
+	uint8_t distEnd = networkTopology.size - index_to_remove - 1;
+	uint8_t distStart = index_to_remove;
+	for(uint8_t i = 0; i < distEnd; i++){
+		networkTopology.devices_ids[distStart] = networkTopology.devices_ids[distStart + 1];
+		distStart++;
+	}
+
+	networkTopology.size = networkTopology.size -1;
+
+	printTopology();
+	
+
+	setNodeIds(networkTopology, node_id);
+
+}
+
+static void reconfigureTopologyFromPacket(DTRpacket *packet){
+	// 1st byte is the number of nodes in the topology
+	uint8_t new_size = packet->data[0]; 
+	networkTopology.size = new_size;
+	for(uint8_t i = 0; i < new_size; i++){
+		networkTopology.devices_ids[i] = packet->data[i+1];
+	}
+	printTopology();
+	// set next and prev node ids after reconfiguration
+	setNodeIds(networkTopology, node_id);
+}
+
+static void sendTestData(){
+	DTRpacket  testSignal;
+	testSignal.message_type = DATA_FRAME;
+	testSignal.source_id = my_id;
+	testSignal.target_id = 1;
+	uint8_t data_size = 25;
+	for (int i = 0; i < data_size; i++){
+		testSignal.data[i] = i;
+	}
+	testSignal.dataSize = data_size;
+	testSignal.allToAllFlag = 1;
+	testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
+	bool res;
+	for (int i = 0; i < TX_DATA_QUEUE_SIZE - 1; i++){
+		testSignal.data[0] = 100+i;
+		res = DTRsendPacket(&testSignal);
+		if (res){
+			DTR_DEBUG_PRINT("Packet sent to DTR protocol\n");
+		}
+		else{
+			DEBUG_PRINT("Packet not sent to DTR protocol\n");
+		}
+	}
+}
+
+static uint8_t getNonRespondingNodeId(void){
+	uint8_t not_responding_node_id;
+	if (rx_state == RX_WAIT_CTS){
+			not_responding_node_id = prev_node_id;
+	} else if (rx_state == RX_WAIT_DATA_ACK || rx_state == RX_WAIT_RTS){
+		not_responding_node_id = (next_sender_id == 255) ? next_node_id : next_sender_id;			
+	}else{
+		DEBUG_PRINT("\nTimeout in wrong state\n");
+		not_responding_node_id = 255;
+	}
+
+	return not_responding_node_id;
+}
+
+static DTRpacket TopologyReconfigPacket;
+static void DTRhandleTimeout(void){
+	DEBUG_PRINT("\nTimeout while being in rx state: %d \n", rx_state);
+	DTRshutdownSenderTimer();
+	bool have_token = (rx_state == RX_WAIT_CTS) || (rx_state == RX_WAIT_DATA_ACK) || (rx_state == RX_WAIT_RTS);
+	if (have_token){
+		DEBUG_PRINT ("I have the token so I will reconfigure the topology...\n");
+		// One node of the network is not responding, consider the network as broken
+		// and reconfigure the network topology
+		
+		if(networkTopology.size > 2){
+			// find the node that is not responding
+			uint8_t not_responding_node_id = getNonRespondingNodeId();
+			if (not_responding_node_id == 255){
+				DEBUG_PRINT("\nNode not responding not found\n");
+				return;
+			}
+			
+			DEBUG_PRINT("not responding node id: %d\n", not_responding_node_id);
+
+			// reconfigure the topology
+			reconfigureTopology(not_responding_node_id);
+			
+			//create a special packet to inform the other nodes of the reconfiguration
+			TopologyReconfigPacket = createReconfigurationPacket();
+			
+			DEBUG_PRINT("Printing topology reconfiguration packet...\n");
+			for (int i = 0; i < TopologyReconfigPacket.dataSize; i++){
+				DEBUG_PRINT("%d ", TopologyReconfigPacket.data[i]);
+			}
+			DEBUG_PRINT("\n");
+
+
+
+			setupRadioTx(&TopologyReconfigPacket, TX_DATA_FRAME);
+
+			//send test data to the new topology
+			emptyDTRDataQueues();
+			sendTestData();
+
+		}else{
+			// only one node in the network, setting into idle state
+			DEBUG_PRINT("\n Only one drone left in network..\n");
+			resetProtocol();
+		}
+
+	}else{
+		// rx state is RX_IDLE
+		resetProtocol();
+	}
+}
 
 void DTRInterruptHandler(void *param) {
 
@@ -259,10 +410,7 @@ void DTRInterruptHandler(void *param) {
 	while ( DTRreceivePacketWaitUntil(&_rxPk, 	RX_SRV_Q, PROTOCOL_TIMEOUT_MS, &new_packet_received) ){
 			if (!new_packet_received) {
 				DTR_DEBUG_PRINT("\nPROTOCOL TIMEOUT!\n");
-				if (my_id != networkTopology.devices_ids[0]) {
-					resetProtocol();
-				}
-				
+				DTRhandleTimeout();	
 				continue;
 			}
 
@@ -298,14 +446,15 @@ void DTRInterruptHandler(void *param) {
 								radioMetaInfo.failedRxQueueFull++;
 							}
 						}
-							/* Acknowledge the data */
-							DTR_DEBUG_PRINT("Received DATA %d\n", rxPk->data[0]);
-							DTR_DEBUG_PRINT("\nSending ACK packet\n");
-							servicePk.message_type = DATA_ACK_FRAME;
-							servicePk.target_id = rxPk->source_id;
-							setupRadioTx(&servicePk, TX_DATA_ACK);
-							continue;
-						}
+						
+						/* Acknowledge the data */
+						DTR_DEBUG_PRINT("Received DATA %d\n", rxPk->data[0]);
+						DTR_DEBUG_PRINT("\nSending ACK packet\n");
+						servicePk.message_type = DATA_ACK_FRAME;
+						servicePk.target_id = rxPk->source_id;
+						setupRadioTx(&servicePk, TX_DATA_ACK);
+						continue;
+					}
 
 					/* if packet is TOKEN packet and received from previous node, then
 					* send a TOKEN_ACK packet and prepare the packet for the timer. */
@@ -325,6 +474,40 @@ void DTRInterruptHandler(void *param) {
 						continue;
 					}
 					
+					/* if packet is TOPOLOGY_RECONFIG packet then reconfigure the  topology 
+					* based on the data included */
+					if (rxPk->message_type == TOPOLOGY_RECONFIG) {
+						DEBUG_PRINT("\nReceived TOPOLOGY_RECONFIG\n");
+						reconfigureTopologyFromPacket(rxPk);
+						//print new topology
+
+						DTRpacket  testSignal;
+						testSignal.message_type = DATA_FRAME;
+						testSignal.source_id = my_id;
+						testSignal.target_id = 1;
+						
+						uint8_t data_size = 25;
+						for (int i = 0; i < data_size; i++){
+							testSignal.data[i] = i;
+						}
+						testSignal.data[0] = 132;
+						 
+						testSignal.dataSize = data_size;
+						testSignal.allToAllFlag = 1;
+						testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
+						
+						bool res = DTRsendPacket(&testSignal);
+						if (!res){
+							DEBUG_PRINT("\nERROR: Failed to send packet\n");
+						}
+						/* Acknowledge the data */
+						DEBUG_PRINT("\nSending ACK TOP RECONFIG packet\n");
+						servicePk.message_type = DATA_ACK_FRAME;
+						servicePk.target_id = rxPk->source_id;
+						setupRadioTx(&servicePk, TX_DATA_ACK);
+						continue;
+					}
+
 					DTR_DEBUG_PRINT("\nRECEIVED PACKET NOT HANDLED\n");
 					/* drop all other packets and restart receiver */
 					break;
@@ -347,7 +530,7 @@ void DTRInterruptHandler(void *param) {
 							if(txPk->allToAllFlag) {
 								txPk->target_id = next_node_id;
 							}
-							if (!IdExistsInTopology(txPk->target_id)) {
+							if (!IdExistsInTopology(txPk->target_id) && !txPk->allToAllFlag) {
 								DEBUG_PRINT("Releasing DTR TX packet,target is not in topology.\n");
 								DTR_DEBUG_PRINT("Is Queue Empty: %d\n", !DTRisPacketInQueueAvailable(TX_DATA_Q));
 								
@@ -405,6 +588,8 @@ void DTRInterruptHandler(void *param) {
 						else {
 							next_target_id = getNextNodeId(next_sender_id);
 						}
+
+
 
 						DTR_DEBUG_PRINT("next_target_id: %d\n", next_target_id);
 						if (!txPk->allToAllFlag || next_target_id == node_id) {

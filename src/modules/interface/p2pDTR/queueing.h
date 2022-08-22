@@ -76,4 +76,6 @@ void emptyDTRQueue(DTRQueue_Names qName);
 
 void emptyDTRQueues(void);
 
+void emptyDTRDataQueues(void);
+
 #endif /* _QUEUEING_H_ */

@@ -142,3 +142,9 @@ void emptyDTRQueues(void){
 	emptyDTRQueue(RX_SRV_Q);
 	emptyDTRQueue(RX_DATA_Q);
 }
+
+void emptyDTRDataQueues(void){
+	emptyDTRQueue(TX_DATA_Q);
+	emptyDTRQueue(RX_DATA_Q);
+}
+
