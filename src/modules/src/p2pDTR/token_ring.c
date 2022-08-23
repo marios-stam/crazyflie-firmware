@@ -64,7 +64,9 @@ static uint32_t protocol_timeout_ms;
 static uint8_t my_id ;
 
 static DTRtopology networkTopology;
-
+static DTRpacket TopologyReconfigPacket;
+static uint8_t nodeWithToken = 255;
+static bool hasBeenTimedOut = false;
 
 // DEBUGGING FUNCTIONS
 #ifdef DEBUG_DTR_PROTOCOL
@@ -121,6 +123,10 @@ static const char* getTXState(uint8_t tx_state){
 
 #endif
 
+static void sendTestData();
+static void setupRadioTx(DTRpacket* packet, TxStates txState);
+
+// ===================== TOPOLOGY FUNCTIONS ====================
 static uint8_t getIndexInTopology(uint8_t id){
 	for(uint8_t i = 0; i < networkTopology.size; i++){
 		if(networkTopology.devices_ids[i] == id){
@@ -169,6 +175,133 @@ static void setNodeIds(DTRtopology topology, uint8_t device_id) {
 	DTR_DEBUG_PRINT("next node_id: %d\n", next_node_id);
 	DTR_DEBUG_PRINT("prev node_id: %d\n", prev_node_id);
 }
+
+static DTRpacket createReconfigurationPacket(void){
+	DTRpacket packet;
+	packet.message_type = TOPOLOGY_RECONFIG;
+	packet.source_id = node_id;
+	packet.allToAllFlag = true;	
+	packet.dataSize = networkTopology.size + 1;
+	packet.packetSize = packet.dataSize + DTR_PACKET_HEADER_SIZE;
+
+	packet.data[0] = networkTopology.size;  // 1st byte is the number of nodes in the topology
+	for (uint8_t i = 0; i < networkTopology.size; i++) {
+		packet.data[i+1] = networkTopology.devices_ids[i];
+	}
+
+	return packet;
+}
+
+static void printTopology(void){
+	DEBUG_PRINT("TOPOLOGY: ");
+	for (size_t i = 0; i < networkTopology.size; i++)
+	{
+		DEBUG_PRINT("%d ", networkTopology.devices_ids[i]);
+	}
+	DEBUG_PRINT("\n");
+}
+
+static void reconfigureTopology(uint8_t node_id_to_remove){
+	uint8_t index_to_remove = getIndexInTopology(node_id_to_remove);
+	DEBUG_PRINT("Index to remove: %d\n", index_to_remove);
+	if(index_to_remove == 255){
+		DTR_DEBUG_PRINT("\nNode to remove not found in topology\n");
+		return;
+	}
+
+	uint8_t distEnd = networkTopology.size - index_to_remove - 1;
+	uint8_t distStart = index_to_remove;
+	for(uint8_t i = 0; i < distEnd; i++){
+		networkTopology.devices_ids[distStart] = networkTopology.devices_ids[distStart + 1];
+		distStart++;
+	}
+
+	networkTopology.size = networkTopology.size -1;
+
+	printTopology();
+	
+
+	setNodeIds(networkTopology, node_id);
+
+}
+
+static void reconfigureTopologyFromPacket(DTRpacket *packet){
+	// 1st byte is the number of nodes in the topology
+	uint8_t new_size = packet->data[0]; 
+	networkTopology.size = new_size;
+	for(uint8_t i = 0; i < new_size; i++){
+		networkTopology.devices_ids[i] = packet->data[i+1];
+	}
+	printTopology();
+	// set next and prev node ids after reconfiguration
+	setNodeIds(networkTopology, node_id);
+}
+
+static uint8_t getNonRespondingNodeId(void){
+	uint8_t not_responding_node_id;
+	if (rx_state == RX_WAIT_CTS){
+			not_responding_node_id = prev_node_id;
+	} else if (rx_state == RX_WAIT_DATA_ACK || rx_state == RX_WAIT_RTS){
+		not_responding_node_id = (next_sender_id == 255) ? next_node_id : next_sender_id;			
+	}else{
+		DEBUG_PRINT("\nTimeout in wrong state\n");
+		not_responding_node_id = 255;
+	}
+
+	return not_responding_node_id;
+}
+
+static void updateNodeWithToken(DTRpacket *packet){
+	bool token_transaction = false;
+	DTR_DEBUG_PRINT("=====================================\n");
+	switch (packet->message_type)
+	{
+	case TOKEN_FRAME:
+		// a node requested a token change
+		DTR_DEBUG_PRINT("TOKEN FRAME from %d\n", packet->source_id);
+		token_transaction = true;
+		nodeWithToken = getNextNodeId(packet->source_id); 
+		break;
+	case RTS_FRAME:
+		// received a token acknowledgement from a node
+		DTR_DEBUG_PRINT("RTS FRAME from %d\n", packet->source_id);
+		token_transaction = true;
+		nodeWithToken = packet->source_id;
+		break;
+	default:
+		// do nothing
+		break;
+	}
+
+	if (token_transaction){
+		DTR_DEBUG_PRINT("Node with token: %d\n", nodeWithToken);
+	}
+}
+
+static void topologyReconfigSequence(uint8_t not_responding_node_id){
+	// reconfigure the topology
+	if (not_responding_node_id != 255){
+		reconfigureTopology(not_responding_node_id);		
+	}
+			
+	//create a special packet to inform the other nodes of the reconfiguration
+	TopologyReconfigPacket = createReconfigurationPacket();
+			
+	DEBUG_PRINT("Printing topology reconfiguration packet...\n");
+	for (int i = 0; i < TopologyReconfigPacket.dataSize; i++){
+		DEBUG_PRINT("%d ", TopologyReconfigPacket.data[i]);
+	}
+	DEBUG_PRINT("\n");
+
+
+
+	setupRadioTx(&TopologyReconfigPacket, TX_DATA_FRAME);
+
+	//send test data to the new topology
+	emptyDTRDataQueues();
+	sendTestData();
+}
+// ==============================================================
 
 static void initTokenRing(DTRtopology topology, uint8_t device_id) {
 	my_id = DTRgetSelfId();
@@ -245,67 +378,6 @@ static void resetProtocol(void){
 	last_packet_source_id = 255;
 }
 
-static DTRpacket createReconfigurationPacket(void){
-	DTRpacket packet;
-	packet.message_type = TOPOLOGY_RECONFIG;
-	packet.source_id = node_id;
-	packet.allToAllFlag = true;	
-	packet.dataSize = networkTopology.size + 1;
-	packet.packetSize = packet.dataSize + DTR_PACKET_HEADER_SIZE;
-
-	packet.data[0] = networkTopology.size;  // 1st byte is the number of nodes in the topology
-	for (uint8_t i = 0; i < networkTopology.size; i++) {
-		packet.data[i+1] = networkTopology.devices_ids[i];
-	}
-
-	return packet;
-}
-
-static void printTopology(void){
-	DEBUG_PRINT("TOPOLOGY: ");
-	for (size_t i = 0; i < networkTopology.size; i++)
-	{
-		DEBUG_PRINT("%d ", networkTopology.devices_ids[i]);
-	}
-	DEBUG_PRINT("\n");
-}
-
-static void reconfigureTopology(uint8_t node_id_to_remove){
-	uint8_t index_to_remove = getIndexInTopology(node_id_to_remove);
-	DEBUG_PRINT("Index to remove: %d\n", index_to_remove);
-	if(index_to_remove == 255){
-		DTR_DEBUG_PRINT("\nNode to remove not found in topology\n");
-		return;
-	}
-
-	uint8_t distEnd = networkTopology.size - index_to_remove - 1;
-	uint8_t distStart = index_to_remove;
-	for(uint8_t i = 0; i < distEnd; i++){
-		networkTopology.devices_ids[distStart] = networkTopology.devices_ids[distStart + 1];
-		distStart++;
-	}
-
-	networkTopology.size = networkTopology.size -1;
-
-	printTopology();
-	
-
-	setNodeIds(networkTopology, node_id);
-
-}
-
-static void reconfigureTopologyFromPacket(DTRpacket *packet){
-	// 1st byte is the number of nodes in the topology
-	uint8_t new_size = packet->data[0]; 
-	networkTopology.size = new_size;
-	for(uint8_t i = 0; i < new_size; i++){
-		networkTopology.devices_ids[i] = packet->data[i+1];
-	}
-	printTopology();
-	// set next and prev node ids after reconfiguration
-	setNodeIds(networkTopology, node_id);
-}
-
 static void sendTestData(){
 	DTRpacket  testSignal;
 	testSignal.message_type = DATA_FRAME;
@@ -331,23 +403,8 @@ static void sendTestData(){
 	}
 }
 
-static uint8_t getNonRespondingNodeId(void){
-	uint8_t not_responding_node_id;
-	if (rx_state == RX_WAIT_CTS){
-			not_responding_node_id = prev_node_id;
-	} else if (rx_state == RX_WAIT_DATA_ACK || rx_state == RX_WAIT_RTS){
-		not_responding_node_id = (next_sender_id == 255) ? next_node_id : next_sender_id;			
-	}else{
-		DEBUG_PRINT("\nTimeout in wrong state\n");
-		not_responding_node_id = 255;
-	}
-
-	return not_responding_node_id;
-}
-
-static DTRpacket TopologyReconfigPacket;
 static void DTRhandleTimeout(void){
-	DEBUG_PRINT("\nTimeout while being in rx state: %d \n", rx_state);
+	DTR_DEBUG_PRINT("\nTimeout while being in rx state: %d \n", rx_state);
 	DTRshutdownSenderTimer();
 	bool have_token = (rx_state == RX_WAIT_CTS) || (rx_state == RX_WAIT_DATA_ACK) || (rx_state == RX_WAIT_RTS);
 	if (have_token){
@@ -365,25 +422,7 @@ static void DTRhandleTimeout(void){
 			
 			DEBUG_PRINT("not responding node id: %d\n", not_responding_node_id);
 
-			// reconfigure the topology
-			reconfigureTopology(not_responding_node_id);
-			
-			//create a special packet to inform the other nodes of the reconfiguration
-			TopologyReconfigPacket = createReconfigurationPacket();
-			
-			DEBUG_PRINT("Printing topology reconfiguration packet...\n");
-			for (int i = 0; i < TopologyReconfigPacket.dataSize; i++){
-				DEBUG_PRINT("%d ", TopologyReconfigPacket.data[i]);
-			}
-			DEBUG_PRINT("\n");
-
-
-
-			setupRadioTx(&TopologyReconfigPacket, TX_DATA_FRAME);
-
-			//send test data to the new topology
-			emptyDTRDataQueues();
-			sendTestData();
+			topologyReconfigSequence(not_responding_node_id);
 
 		}else{
 			// only one node in the network, setting into idle state
@@ -393,7 +432,35 @@ static void DTRhandleTimeout(void){
 
 	}else{
 		// rx state is RX_IDLE
-		resetProtocol();
+		if (!hasBeenTimedOut){
+			// if it is the first time the timeout is triggered, reset the protocol
+			resetProtocol();
+			hasBeenTimedOut = true;
+		}else if (node_id == getPrevNodeId(nodeWithToken)){
+			/* If it is the second time the timeout is triggered, it means that the node that dies had the token
+			 * If this node is the one before the node with the token that died
+			 * claim the token and start reconfiguration
+			*/
+			DEBUG_PRINT("\nI am the one before the node with the token that died\n");
+			topologyReconfigSequence(nodeWithToken);
+			hasBeenTimedOut = false;
+		}else{
+			DEBUG_PRINT("\nI am not the one before the node with the token that died and no one has claimed the node yet\n");
+			DEBUG_PRINT("Node with token: %d\n", nodeWithToken);
+			printTopology();
+
+			DEBUG_PRINT("Node with token prev: %d\n", getPrevNodeId(nodeWithToken));
+			DEBUG_PRINT("Node with token next: %d\n", getNextNodeId(nodeWithToken));
+
+			DEBUG_PRINT("Aggresive token claim...\n");
+			if (networkTopology.devices_ids[0] == node_id){
+				// I am the first node in the network, I claim the token
+				DEBUG_PRINT("I am the first node in the network, I claim the token\n");
+				topologyReconfigSequence(255); // 255 means that no node will be removed but the token will be claimed
+				
+			}
+		}
+
 	}
 }
 
@@ -408,9 +475,12 @@ void DTRInterruptHandler(void *param) {
 
 	DTR_DEBUG_PRINT("\nDTRInterruptHandler Task called...\n");
 	while ( DTRreceivePacketWaitUntil(&_rxPk, 	RX_SRV_Q, PROTOCOL_TIMEOUT_MS, &new_packet_received) ){
-			if (!new_packet_received) {
+			if (!new_packet_received ) {
 				DTR_DEBUG_PRINT("\nPROTOCOL TIMEOUT!\n");
-				DTRhandleTimeout();	
+				if (radioMetaInfo.receivedPackets>0){
+					DTRhandleTimeout();	
+				}
+
 				continue;
 			}
 
@@ -429,6 +499,9 @@ void DTRInterruptHandler(void *param) {
 			DTR_DEBUG_PRINT("Received packet type: %d\n", rxPk->message_type);
 			DTR_DEBUG_PRINT("Received packet target id: %d\n", rxPk->target_id);
 			DTR_DEBUG_PRINT("my_id: %d\n", node_id);
+
+			
+			updateNodeWithToken(rxPk);
 
 			switch (rx_state) {
 
@@ -461,6 +534,7 @@ void DTRInterruptHandler(void *param) {
 					if (rxPk->message_type == TOKEN_FRAME && rxPk->source_id == prev_node_id) {
 						DTR_DEBUG_PRINT("\nReceived TOKEN from prev\n");
 						servicePk.message_type = RTS_FRAME;
+						servicePk.target_id = rxPk->source_id;
 						setupRadioTx(&servicePk, TX_RTS);
 						continue;
 					}
@@ -479,6 +553,7 @@ void DTRInterruptHandler(void *param) {
 					if (rxPk->message_type == TOPOLOGY_RECONFIG) {
 						DEBUG_PRINT("\nReceived TOPOLOGY_RECONFIG\n");
 						reconfigureTopologyFromPacket(rxPk);
+						hasBeenTimedOut = false;
 						//print new topology
 
 						DTRpacket  testSignal;
@@ -695,7 +770,6 @@ void DTRstartCommunication() {
 	DTRstartSenderTimer(MAX_WAIT_TIME_FOR_DATA_ACK);
 }
 
-
 void DTRprintPacket(DTRpacket* packet){
 	DTR_DEBUG_PRINT("\nDTR Packet Received: %s\n", getMessageType(packet->message_type));
 	DTR_DEBUG_PRINT("Packet Size: %d\n", packet->packetSize);
@@ -722,6 +796,7 @@ uint8_t DTRgetSelfId(void){
 	return my_id;
 }
 
+// =========== API for the DTR Protocol ===========
 void DTRenableProtocol(DTRtopology topology){
 	DTR_DEBUG_PRINT("Initializing queues ...\n");
 	DTRqueueingInit();
@@ -755,14 +830,12 @@ void DisableDTRProtocol(void){
 	emptyDTRQueues();
 }
 
-
 bool DTRsendPacket(DTRpacket* packet){
 	packet->message_type = DATA_FRAME;
 	packet->source_id = node_id;
 	packet->packetSize = DTR_PACKET_HEADER_SIZE + packet->dataSize;
 	return  DTRinsertPacketToQueue(packet,TX_DATA_Q);
 }
-
 
 bool DTRgetPacket(DTRpacket* packet, uint32_t timeout){
 	if (timeout != portMAX_DELAY){

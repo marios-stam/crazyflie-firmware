@@ -90,6 +90,7 @@ void p2pcallbackHandler(P2PPacket *p){
 
 void appMain(){
 	my_id = DTRgetSelfId();
+	DTR_DEBUG_PRINT("My id is %d\n", my_id);
 	DEBUG_PRINT("Network Topology: %d", topology.size);
 	for (int i = 0; i < topology.size; i++){
 		DEBUG_PRINT("%d ", topology.devices_ids[i]);
