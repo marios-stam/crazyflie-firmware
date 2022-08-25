@@ -177,7 +177,7 @@ static dtrPacket createReconfigurationPacket(void){
 	dtrPacket packet;
 	packet.messageType = TOPOLOGY_RECONFIG;
 	packet.sourceId = node_id;
-	packet.targetId = 0xFF;	
+	packet.targetId = BROADCAST_ID;	
 	packet.dataSize = networkTopology.size + 1;
 	packet.packetSize = packet.dataSize + DTR_PACKET_HEADER_SIZE;
 
@@ -331,7 +331,6 @@ static void setupRadioTx(dtrPacket* packet, dtrTxStates txState) {
 			rx_state = RX_WAIT_CTS;
 
 			// set the radio timer to "spam" RTS messages
-			// setDTRSenderTimer(MAX_WAIT_TIME_FOR_CTS);
 			timerDTRpacket = packet;
 			dtrStartSenderTimer(MAX_WAIT_TIME_FOR_CTS);
 			break;
@@ -381,14 +380,15 @@ static void sendTestData(){
 	testSignal.sourceId = my_id;
 	
 	const char test_data[] = "Sending test data...";
-	// uint8_t data_size = strlen(test_data);
-	uint8_t data_size = 20;
+	uint8_t data_size = strlen(test_data);
 	testSignal.dataSize = data_size;
 	for (int i = 0; i < data_size; i++){
 		testSignal.data[i] = test_data[i];
 	}
+
+	DEBUG_PRINT("\nSending test data...\n");
 	
-	testSignal.targetId = 0xFF;
+	testSignal.targetId = BROADCAST_ID;
 	testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
 	
 	bool res;
@@ -562,14 +562,13 @@ void dtrTaskHandler(void *param) {
 						testSignal.targetId = 1;
 						
 						const char responseToReconf[] = "Response to reconfig";
-						// uint8_t data_size = strlen(responseToReconf);					
-						uint8_t data_size = 20;					
+						uint8_t data_size = strlen(responseToReconf);					
 						testSignal.dataSize = data_size;
 						for (int i = 0; i < data_size; i++){
 							testSignal.data[i] = responseToReconf[i];
 						}
 						 
-						testSignal.targetId = 0xFF;
+						testSignal.targetId = BROADCAST_ID;
 						testSignal.packetSize = DTR_PACKET_HEADER_SIZE + testSignal.dataSize;
 						
 						bool res = dtrSendPacket(&testSignal);
@@ -603,7 +602,7 @@ void dtrTaskHandler(void *param) {
 						if (dtrGetPacketFromQueue(&_txPk, TX_DATA_Q, M2T(TX_RECEIVED_WAIT_TIME))) {
 							txPk = &_txPk;
 							DTR_DEBUG_PRINT("TX DATA Packet exists (dataSize: %d), sending it\n",txPk->dataSize);
-							if(txPk->targetId == 0xFF) {
+							if(txPk->targetId == BROADCAST_ID) {
 								txPk->targetId = next_node_id;
 							}
 							if (!IdExistsInTopology(txPk->targetId)) {
@@ -669,7 +668,7 @@ void dtrTaskHandler(void *param) {
 
 						DTR_DEBUG_PRINT("next_target_id: %d\n", next_target_id);
 
-						bool not_in_broadcast_mode = !(txPk->targetId == 0xFF);
+						bool not_in_broadcast_mode = !(txPk->targetId == BROADCAST_ID);
 						bool reached_desired_node = not_in_broadcast_mode && (txPk->targetId == next_target_id)  ; 
 						
 						bool reached_self = (next_target_id == node_id);

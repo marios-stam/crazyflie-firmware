@@ -67,7 +67,7 @@
 #define DTR_P2P_PORT 15 // between 0 and 15(4 bits)
 
 #define START_PACKET 0xBCCF
-
+#define BROADCAST_ID 0xFF
 uint8_t dtrGetDeviceAddress();
 
 void dtrTimeOutCallBack(xTimerHandle timer);
