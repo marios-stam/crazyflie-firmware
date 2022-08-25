@@ -63,36 +63,36 @@ static xQueueHandle *getQueueHandler(DTRQueue_Names qName){
 }
 
 
-void DTRqueueingInit(){
+void dtrQueueingInit(){
 	// TX SRV queue
-	STATIC_MEM_QUEUE_ALLOC(TX_DATA_queue, TX_DATA_QUEUE_SIZE, sizeof(DTRpacket));
+	STATIC_MEM_QUEUE_ALLOC(TX_DATA_queue, TX_DATA_QUEUE_SIZE, sizeof(dtrPacket));
 	TX_DATA_queue = STATIC_MEM_QUEUE_CREATE(TX_DATA_queue);
 	DEBUG_QUEUE_MONITOR_REGISTER(TX_DATA_queue);
 
 	// RX SRV queue
-	STATIC_MEM_QUEUE_ALLOC(RX_SRV_queue, RX_SRV_QUEUE_SIZE, sizeof(DTRpacket));
+	STATIC_MEM_QUEUE_ALLOC(RX_SRV_queue, RX_SRV_QUEUE_SIZE, sizeof(dtrPacket));
 	RX_SRV_queue = STATIC_MEM_QUEUE_CREATE(RX_SRV_queue);
 	DEBUG_QUEUE_MONITOR_REGISTER(RX_SRV_queue);
 
 	// RX DATA queue
-	STATIC_MEM_QUEUE_ALLOC(RX_DATA_queue, RX_DATA_QUEUE_SIZE, sizeof(DTRpacket));
+	STATIC_MEM_QUEUE_ALLOC(RX_DATA_queue, RX_DATA_QUEUE_SIZE, sizeof(dtrPacket));
 	RX_DATA_queue = STATIC_MEM_QUEUE_CREATE(RX_DATA_queue);
 	DEBUG_QUEUE_MONITOR_REGISTER(RX_DATA_queue);
 
 }
 
-uint8_t DTRgetNumberOfPacketsInQueue(DTRQueue_Names qName){
+uint8_t dtrGetNumberOfPacketsInQueue(DTRQueue_Names qName){
 	return (uint8_t) uxQueueMessagesWaiting(*getQueueHandler(qName));
 }
 
-bool DTRisPacketInQueueAvailable(DTRQueue_Names qName) {
+bool dtrIsPacketInQueueAvailable(DTRQueue_Names qName) {
 	return uxQueueMessagesWaiting(*getQueueHandler(qName)) > 0;
 }
 
-bool DTRgetPacketFromQueue(DTRpacket *packet, DTRQueue_Names qName, uint32_t timeout){
+bool dtrGetPacketFromQueue(dtrPacket *packet, DTRQueue_Names qName, uint32_t timeout){
 	// notice that xQueuePeek is used instead of xQueueReceive, because the packet is not removed from the queue
     //TODO: make a separate function for this
-	bool received_success;
+	bool received_success = false;
 	switch (qName)
 	{
 	case TX_DATA_Q:
@@ -114,13 +114,13 @@ bool DTRgetPacketFromQueue(DTRpacket *packet, DTRQueue_Names qName, uint32_t tim
 	return received_success;
 }
 
-bool DTRreceivePacketWaitUntil(DTRpacket *packet, DTRQueue_Names qName, uint32_t timeout_ms, bool *new_packet_received){
+bool dtrReceivePacketWaitUntil(dtrPacket *packet, DTRQueue_Names qName, uint32_t timeout_ms, bool *new_packet_received){
 	*new_packet_received = xQueueReceive(*getQueueHandler(qName), packet, M2T(timeout_ms)) == pdTRUE;
 	return true;
 }
 
-bool DTRinsertPacketToQueue(DTRpacket *packet, DTRQueue_Names qName) {
-	bool res = xQueueSend(*getQueueHandler(qName),(void *) packet, 0) == pdTRUE;
+bool dtrInsertPacketToQueue(dtrPacket *packet, DTRQueue_Names qName) {
+	bool res = (xQueueSend(*getQueueHandler(qName),(void *) packet, 0) == pdTRUE);
 	if (!res) {
 		DEBUG_PRINT("TX_DATA queue busy\n");
 	}
@@ -128,23 +128,23 @@ bool DTRinsertPacketToQueue(DTRpacket *packet, DTRQueue_Names qName) {
 	return res;
 }
 
-bool releaseDTRPacketFromQueue(DTRQueue_Names qName) {
-	DTRpacket packet;
+bool dtrReleasePacketFromQueue(DTRQueue_Names qName) {
+	dtrPacket packet;
 	return xQueueReceive(*getQueueHandler(qName), &packet, M2T(TX_RECEIVED_WAIT_TIME)) == pdTRUE;
 }
 
-void emptyDTRQueue(DTRQueue_Names qName) {
+void dtrEmptyQueue(DTRQueue_Names qName) {
 	xQueueReset(*getQueueHandler(qName));
 }
 
-void emptyDTRQueues(void){
-	emptyDTRQueue(TX_DATA_Q);
-	emptyDTRQueue(RX_SRV_Q);
-	emptyDTRQueue(RX_DATA_Q);
+void dtrEmptyQueues(void){
+	dtrEmptyQueue(TX_DATA_Q);
+	dtrEmptyQueue(RX_SRV_Q);
+	dtrEmptyQueue(RX_DATA_Q);
 }
 
-void emptyDTRDataQueues(void){
-	emptyDTRQueue(TX_DATA_Q);
-	emptyDTRQueue(RX_DATA_Q);
+void dtrEmptyDataQueues(void){
+	dtrEmptyQueue(TX_DATA_Q);
+	dtrEmptyQueue(RX_DATA_Q);
 }
 

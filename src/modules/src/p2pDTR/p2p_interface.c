@@ -7,7 +7,7 @@
  *
  * Crazyflie control firmware
  *
- * Copyright (C) 2019 Bitcraze AB
+ * Copyright (C) 2022 Bitcraze AB
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,9 +34,9 @@
 #include "debug.h"
 
 static P2PPacket p2p_TXpacket;
-static DTRpacket prev_received = {0};
+static dtrPacket prev_received = {0};
 
-void DTRsendP2Ppacket(const DTRpacket* packet) {
+void dtrSendP2Ppacket(const dtrPacket* packet) {
     p2p_TXpacket.port = DTR_P2P_PORT;
 
     memcpy(&p2p_TXpacket.data[0], packet, packet->packetSize);
@@ -45,39 +45,40 @@ void DTRsendP2Ppacket(const DTRpacket* packet) {
     radiolinkSendP2PPacketBroadcast(&p2p_TXpacket);
 }
 
-void DTRp2pIncomingHandler(P2PPacket *p){
-    if (p->port != DTR_P2P_PORT){
+static void dtrFeedPacketToProtocol(dtrPacket *incoming_DTR) {
+
+     bool same_packet_received =  incoming_DTR->messageType == prev_received.messageType && 
+                        incoming_DTR->targetId == prev_received.targetId &&
+                        incoming_DTR->sourceId == prev_received.sourceId;
+
+    // if there are packets in the queue and the new packet is the same as the previous one, ignore it
+    DTR_DEBUG_PRINT("Packets in RX_SRV queue: %d\n", dtrGetNumberOfPacketsInQueue(RX_SRV_Q) );
+    if ( dtrGetNumberOfPacketsInQueue(RX_SRV_Q) !=0 && same_packet_received ) {
+        DTR_DEBUG_PRINT("Duplicate packet received\n");
+        DTR_DEBUG_PRINT("Message type: %d\n", incoming_DTR->messageType);
+        DTR_DEBUG_PRINT("Target id: %d\n", incoming_DTR->targetId);
+
         return;
     }
 
-    DTRpacket incoming_DTR;	
+    prev_received.messageType = incoming_DTR->messageType;
+    prev_received.targetId = incoming_DTR->targetId;
+    prev_received.sourceId = incoming_DTR->sourceId;
+
+    dtrInsertPacketToQueue(incoming_DTR, RX_SRV_Q);
+}
+
+bool dtrP2PIncomingHandler(P2PPacket *p){
+    if (p->port != DTR_P2P_PORT){
+        return false;
+    }
+
+    dtrPacket incoming_DTR;	
 
     uint8_t DTRpacket_size = p->data[0];
 
 	memcpy(&incoming_DTR, &(p->data[0]), DTRpacket_size);
-    DTRfeedPacketToProtocol(&incoming_DTR);
-}
+    dtrFeedPacketToProtocol(&incoming_DTR);
 
-
-void DTRfeedPacketToProtocol(DTRpacket *incoming_DTR) {
-
-     bool same_packet_received =  incoming_DTR->message_type == prev_received.message_type && 
-                        incoming_DTR->target_id == prev_received.target_id &&
-                        incoming_DTR->source_id == prev_received.source_id;
-
-    // if there are packets in the queue and the new packet is the same as the previous one, ignore it
-    DTR_DEBUG_PRINT("Packets in RX_SRV queue: %d\n", DTRgetNumberOfPacketsInQueue(RX_SRV_Q) );
-    if ( DTRgetNumberOfPacketsInQueue(RX_SRV_Q) !=0 && same_packet_received ) {
-        DTR_DEBUG_PRINT("Duplicate packet received\n");
-        DTR_DEBUG_PRINT("Message type: %d\n", incoming_DTR->message_type);
-        DTR_DEBUG_PRINT("Target id: %d\n", incoming_DTR->target_id);
-
-        return;
-    }
-
-    prev_received.message_type = incoming_DTR->message_type;
-    prev_received.target_id = incoming_DTR->target_id;
-    prev_received.source_id = incoming_DTR->source_id;
-
-    DTRinsertPacketToQueue(incoming_DTR, RX_SRV_Q);
+    return true;
 }

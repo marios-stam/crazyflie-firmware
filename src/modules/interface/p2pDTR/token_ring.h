@@ -66,28 +66,26 @@
 #define PROTOCOL_TIMEOUT_MS 4 * 1000.0f // ms 
 #define DTR_P2P_PORT 15 // between 0 and 15(4 bits)
 
-// void initTokenRing(DTRtopology topology, uint8_t device_id);
+#define START_PACKET 0xBCCF
 
-uint8_t DTRgetDeviceAddress();
+uint8_t dtrGetDeviceAddress();
 
-void DTRtimeOutCallBack(xTimerHandle timer);
+void dtrTimeOutCallBack(xTimerHandle timer);
 
-void DTRstartCommunication();
+void dtrTaskHandler(void *param);
 
-void DTRInterruptHandler(void *param);
+const dtrRadioInfo* dtrGetRadioInfo();
 
-const RadioInfo* DTRgetRadioInfo();
+void dtrResetRadioMetaInfo();
 
-void DTRresetRadioMetaInfo();
+void dtrPrintPacket(dtrPacket* packet);
 
-void DTRprintPacket(DTRpacket* packet);
-
-uint8_t DTRgetSelfId(void);
+uint8_t dtrGetSelfId(void);
 // =========================== DTR API ===========================
 
 // Starts the task of the Dynamic Token Ring Protocol (DTR) and initializes the protocol
 // @param topology The topology of the network (see DTR_types.h)
-void DTRenableProtocol(DTRtopology topology);
+void dtrEnableProtocol(dtrTopology topology);
 
 // Stops the task of the Dynamic Token Ring Protocol (DTR) and deinitializes the protocol
 void DisableDTRProtocol(void);
@@ -95,13 +93,13 @@ void DisableDTRProtocol(void);
 // Sends a packet to the DTR protocol
 // @param packet The packet to be sent
 // @return true if the packet was sent successfully to the DTR (not the final receiver), false otherwise 
-bool DTRsendPacket(DTRpacket* packet);
+bool dtrSendPacket(dtrPacket* packet);
 
 // Receives a packet from the DTR Protocol
 // Blocks for the specified timeout if no packet is received
 // @param packet: the packet to be received
-// @param timeout: the timeout in milliseconds
+// @param timeout: the timeout in ticks
 // @return true if the packet was received, false otherwise
-bool DTRgetPacket(DTRpacket* packet, uint32_t timeout);
+bool dtrGetPacket(dtrPacket* packet, uint32_t timeout);
 
 #endif /* SRC_RADIO_RADIO_H_ */
