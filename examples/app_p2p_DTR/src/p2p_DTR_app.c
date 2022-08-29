@@ -124,10 +124,6 @@ void appMain(){
 	// Register the callback function so that the CF can receive packets as well.
 	p2pRegisterCB(p2pcallbackHandler);
 
-	if (my_id == topology.devices_ids[0]){
-		DTR_DEBUG_PRINT("Starting communication...\n");
-		loadTXPacketsForTesting();
-	}
 
 	dtrPacket received_packet;
 	uint32_t start = T2M(xTaskGetTickCount());

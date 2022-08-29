@@ -45,8 +45,7 @@
 #define MAX_WAIT_TIME_FOR_CTS      11 // ms
 #define MAX_WAIT_TIME_FOR_DATA_ACK 12 // ms
 
-#define DTR_PROTOCOL_PERIOD 5 // ms (random value)
-
+#define HANDSHAKE_TIMER_PERIOD     100 // ms
 
 // DTR PROTOCOL TASK
 #define DTR_PROTOCOL_TASK_STACK_SIZE (2 * configMINIMAL_STACK_SIZE)
@@ -63,5 +62,12 @@ void dtrInitSenderTimer(void);
 void dtrShutdownSenderTimer(void);
 
 void dtrStartSenderTimer(unsigned int time_out);
+
+// ================ Handshake timer ==================
+void dtrInitHandshakeTimer(void);
+
+void dtrShutdownHandshakeTimer(void);
+
+void dtrStartHandshakeTimer(void);
 
 #endif /* SRC_RADIO_DTR_HANDLERS_H_ */

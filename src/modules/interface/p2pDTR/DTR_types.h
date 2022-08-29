@@ -56,6 +56,7 @@ typedef enum tx_states_e {
 } dtrTxStates;
 
 typedef enum rx_states_e {
+	RX_HANDSHAKE=0,
 	RX_IDLE,
 	RX_WAIT_CTS,
 	RX_WAIT_RTS,
@@ -69,6 +70,7 @@ enum dtrMessageTypes {
 	RTS_FRAME = 3,
 	DATA_ACK_FRAME = 4,
 	TOPOLOGY_RECONFIG = 5,
+	HANDSHAKE_FRAME = 6,
 };
 
 // |--------------------|

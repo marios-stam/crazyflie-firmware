@@ -38,6 +38,7 @@
 #include "debug.h"
 
 static xTimerHandle sender_timer;
+static xTimerHandle handshake_timer;
 static TaskHandle_t DTRtaskHandler = NULL;
 
 static bool sender_timer_running = false;
@@ -66,7 +67,6 @@ void dtrShutdownSenderTimer(void) {
 	}
 }
 
-
 void dtrStartSenderTimer(unsigned int time_out) {
 
 	if(time_out == MAX_WAIT_TIME_FOR_RTS ){
@@ -90,3 +90,32 @@ void dtrStartSenderTimer(unsigned int time_out) {
 		sender_timer_running = true;
 	}
 }
+
+// ================ Handshake timer ==================
+void dtrInitHandshakeTimer(void) {
+	DEBUG_PRINT("Initializing Handshake timer ...\n");
+	handshake_timer = xTimerCreate("DTRHandshake", M2T(HANDSHAKE_TIMER_PERIOD), pdTRUE, NULL, dtrHandshakeTimeOutCallBack);
+	//check if timer was created
+	if (handshake_timer == NULL) {
+		DEBUG_PRINT("Handshake timer not created during init\n");
+	}
+}
+
+void dtrShutdownHandshakeTimer(void) {
+	if (xTimerIsTimerActive(handshake_timer)==pdTRUE) {
+		xTimerStop(handshake_timer, 0);
+		DTR_DEBUG_PRINT("Stopped handshake timer\n");
+	}else{
+		DTR_DEBUG_PRINT("Handshake timer not running\n");
+	}
+}
+
+void dtrStartHandshakeTimer(void) {
+	if(handshake_timer == NULL){
+		DEBUG_PRINT("Handshake timer not created while starting\n");
+	}else{
+		DEBUG_PRINT("Started handshake timer while trying to start\n");
+		xTimerStart(handshake_timer, 20);
+	}
+}
+

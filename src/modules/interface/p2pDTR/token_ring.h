@@ -49,6 +49,8 @@
 #include "p2p_interface.h"
 #include "queueing.h"
 
+// #define STATIC_PREDEFINED_TOPOLOGY
+
 // #define UNUSED(...) ((void)sizeof((_Bool[]){__VA_ARGS__})); //Used to silence compiler warnings about unused parameters
 #define UNUSED(...) ; //Used to silence compiler warnings about unused parameters
 
@@ -65,6 +67,7 @@
 
 #define PROTOCOL_TIMEOUT_MS 4 * 1000.0f // ms 
 #define DTR_P2P_PORT 15 // between 0 and 15(4 bits)
+#define HANDSHAKE_TIMEOUT_MS (10* 1000) // ms
 
 #define START_PACKET 0xBCCF
 #define BROADCAST_ID 0xFF
@@ -81,6 +84,9 @@ void dtrResetRadioMetaInfo();
 void dtrPrintPacket(dtrPacket* packet);
 
 uint8_t dtrGetSelfId(void);
+
+void dtrHandshakeTimeOutCallBack(xTimerHandle timer);
+
 // =========================== DTR API ===========================
 
 // Starts the task of the Dynamic Token Ring Protocol (DTR) and initializes the protocol

@@ -49,27 +49,29 @@ static void dtrFeedPacketToProtocol(dtrPacket *incoming_DTR) {
 
      bool same_packet_received =  incoming_DTR->messageType == prev_received.messageType && 
                         incoming_DTR->targetId == prev_received.targetId &&
-                        incoming_DTR->sourceId == prev_received.sourceId;
+                        incoming_DTR->sourceId == prev_received.sourceId &&
+                        incoming_DTR->dataSize == prev_received.dataSize ;
 
     // if there are packets in the queue and the new packet is the same as the previous one, ignore it
     DTR_DEBUG_PRINT("Packets in RX_SRV queue: %d\n", dtrGetNumberOfPacketsInQueue(RX_SRV_Q) );
     if ( dtrGetNumberOfPacketsInQueue(RX_SRV_Q) !=0 && same_packet_received ) {
-        DTR_DEBUG_PRINT("Duplicate packet received\n");
-        DTR_DEBUG_PRINT("Message type: %d\n", incoming_DTR->messageType);
+        DEBUG_PRINT("Duplicate packet received\n");
+        DEBUG_PRINT("Message type: %d\n", incoming_DTR->messageType);
         DTR_DEBUG_PRINT("Target id: %d\n", incoming_DTR->targetId);
-
         return;
     }
 
     prev_received.messageType = incoming_DTR->messageType;
     prev_received.targetId = incoming_DTR->targetId;
     prev_received.sourceId = incoming_DTR->sourceId;
+    prev_received.dataSize = incoming_DTR->dataSize;
 
     dtrInsertPacketToQueue(incoming_DTR, RX_SRV_Q);
 }
 
 bool dtrP2PIncomingHandler(P2PPacket *p){
     if (p->port != DTR_P2P_PORT){
+        DEBUG_PRINT("Wrong port!\n");
         return false;
     }
 
