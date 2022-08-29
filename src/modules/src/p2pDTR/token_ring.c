@@ -674,6 +674,8 @@ void dtrTaskHandler(void *param)
 		rxPk = &_rxPk;
 
 		updateNodeWithToken(rxPk);
+		now_ms = T2M(xTaskGetTickCount());
+
 		switch (rx_state)
 		{
 		case RX_HANDSHAKE:
@@ -689,8 +691,9 @@ void dtrTaskHandler(void *param)
 				if (my_id <= minimumIdOfTopology(handshakeTopology))
 				{
 					DEBUG_PRINT("\nI am the node with the smallest id, I claim the token\n");
-					memcpy(&networkTopology, &handshakeTopology, handshakeTopology.size);
-
+					memcpy(&networkTopology.devices_ids, &handshakeTopology.devices_ids, handshakeTopology.size);
+					networkTopology.size = handshakeTopology.size;
+					
 					// Configure Topology without removing any node
 					topologyReconfigSequence(255);
 				}
