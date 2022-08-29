@@ -347,7 +347,7 @@ static void topologyReconfigSequence(uint8_t not_responding_node_id)
 static void initHandshakePacket(void)
 {
 	handshakePacket.messageType = HANDSHAKE_FRAME;
-	handshakePacket.sourceId = node_id;
+	handshakePacket.sourceId = dtrGetSelfId();
 
 	// add self to the topology
 	handshakePacket.dataSize = 1;
@@ -356,8 +356,10 @@ static void initHandshakePacket(void)
 void dtrHandshakeTimeOutCallBack(xTimerHandle timer)
 {
 	uint8_t top_size = handshakeTopology.size;
-	memcpy(&handshakePacket.data, handshakeTopology.devices_ids, top_size);
-	handshakePacket.dataSize = handshakeTopology.size;
+
+	memcpy(&handshakePacket.data, &handshakeTopology.devices_ids, top_size);
+
+	handshakePacket.dataSize = top_size;
 	handshakePacket.messageType = HANDSHAKE_FRAME;
 	handshakePacket.packetSize = DTR_PACKET_HEADER_SIZE + handshakePacket.dataSize;
 	dtrSendP2Ppacket(&handshakePacket);
@@ -379,8 +381,6 @@ static void addNodeToHandshakeTopology(uint8_t id)
 {
 	if (handshakeTopology.size < MAX_NETWORK_SIZE || handshakeTopology.size == 255)
 	{
-		handshakeTopology.devices_ids[handshakeTopology.size] = id;
-
 		if (handshakeTopology.size == 255)
 		{
 			handshakeTopology.size = 1;
@@ -390,7 +390,7 @@ static void addNodeToHandshakeTopology(uint8_t id)
 			handshakeTopology.size++;
 		}
 
-		DEBUG_PRINT("Node %d added to handshake topology\n", id);
+		handshakeTopology.devices_ids[handshakeTopology.size-1] = id;
 	}
 	else
 	{
@@ -400,18 +400,20 @@ static void addNodeToHandshakeTopology(uint8_t id)
 
 void dtrHandleHandshakePacket(dtrPacket *packet)
 {
-	DEBUG_PRINT("Handling handshake packet from %d\n", packet->sourceId);
-	DEBUG_PRINT("PACKET data size: %d\n", packet->dataSize);
+	// DEBUG_PRINT("Handling handshake packet from %d\n", packet->sourceId);
+	// DEBUG_PRINT("PACKET data size: %d\n", packet->dataSize);
 	for (int i = 0; i < packet->dataSize; i++)
 	{
 		uint8_t id = packet->data[i];
-		DEBUG_PRINT("Checking:%d...\n", id);
+		// DEBUG_PRINT("Checking:%d...\n", id);
 		if (!isNodeKnownInHandshakeTopology(id))
 		{	
 			addNodeToHandshakeTopology(id);
+			DEBUG_PRINT("Node %d added to handshake topology\n", id);
+
 			handshakeTimeoutMs = now_ms + HANDSHAKE_TIMEOUT_MS;
 		}else{
-			DEBUG_PRINT("Node %d already in handshake topology\n", id);
+			// DEBUG_PRINT("Node %d already in handshake topology\n", id);
 		}
 	}
 }
@@ -433,7 +435,7 @@ static uint8_t minimumIdOfTopology(dtrTopology topology)
 static void initTokenRing(dtrTopology topology, uint8_t device_id)
 {
 	my_id = dtrGetSelfId();
-
+	DEBUG_PRINT("My id: %d\n", my_id);
 /* Network node configuration*/
 #ifdef STATIC_PREDEFINED_TOPOLOGY
 	setNodeIds(topology, my_id);
@@ -446,6 +448,7 @@ static void initTokenRing(dtrTopology topology, uint8_t device_id)
 	addNodeToHandshakeTopology(my_id);
 
 	rx_state = RX_HANDSHAKE;
+	node_id = dtrGetSelfId();
 #endif
 }
 
@@ -638,7 +641,6 @@ static bool dtrHandleReceiveTimeout(bool new_packet_received)
 
 void dtrTaskHandler(void *param)
 {
-	DEBUG_PRINT("rx_state:%d\n", rx_state);
 
 	dtrPacket *rxPk, *txPk;
 
@@ -652,10 +654,8 @@ void dtrTaskHandler(void *param)
 	now_ms = T2M(xTaskGetTickCount());
 	handshakeTimeoutMs = now_ms + HANDSHAKE_TIMEOUT_MS;
 	DEBUG_PRINT("\nDTRInterruptHandler Task called...\n");
-	DEBUG_PRINT("rx_state:%d\n", rx_state);
 	while (dtrReceivePacketWaitUntil(&_rxPk, RX_SRV_Q, PROTOCOL_TIMEOUT_MS, &new_packet_received))
 	{	
-		DEBUG_PRINT("rx_state:%d\n", rx_state);
 
 		if (!new_packet_received)
 		{
@@ -664,7 +664,6 @@ void dtrTaskHandler(void *param)
 				continue;
 			}
 		}
-		DEBUG_PRINT("rx_state:%d\n", rx_state);
 
 		// Don't count handshake packets
 		if (!(rxPk->messageType == HANDSHAKE_FRAME))
@@ -679,7 +678,6 @@ void dtrTaskHandler(void *param)
 		{
 		case RX_HANDSHAKE:
 		{
-			DEBUG_PRINT("\nRX_HANDSHAKE\n");
 			bool handshake_timeout = (now_ms > handshakeTimeoutMs);
 			if (!handshake_timeout && rxPk->messageType == HANDSHAKE_FRAME)
 			{
