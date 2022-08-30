@@ -639,6 +639,7 @@ static bool dtrHandleReceiveTimeout(bool new_packet_received)
 	return false;
 }
 
+// ================================ MAIN TASK =================================
 void dtrTaskHandler(void *param)
 {
 
@@ -687,13 +688,14 @@ void dtrTaskHandler(void *param)
 			}
 			else if (handshake_timeout)
 			{
+				dtrShutdownHandshakeTimer();
 				// check if this is the node with the smaller id
 				if (my_id <= minimumIdOfTopology(handshakeTopology))
 				{
 					DEBUG_PRINT("\nI am the node with the smallest id, I claim the token\n");
 					memcpy(&networkTopology.devices_ids, &handshakeTopology.devices_ids, handshakeTopology.size);
 					networkTopology.size = handshakeTopology.size;
-					
+
 					// Configure Topology without removing any node
 					topologyReconfigSequence(255);
 				}
@@ -939,7 +941,7 @@ void dtrTaskHandler(void *param)
 		// resetProtocol(); //TODO: test if it makes sense
 	}
 }
-
+// ============================================================================
 uint8_t dtrGetDeviceAddress()
 {
 	return node_id;
